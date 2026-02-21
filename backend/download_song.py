@@ -1,12 +1,21 @@
 import yt_dlp
+from pydub import AudioSegment
 import os
 
-def download_song_as_m4a(song_name):
+def download_song_as_wav(song_name):
+
     ydl_opts = {
-        'format': 'bestaudio[ext=m4a]/bestaudio',
-        'outtmpl': 'downloads/%(title)s.%(ext)s',
-        'quiet': False,
-        'no_warnings': False,
+        'format': 'bestaudio/best',
+        'outtmpl': 'downloads/%(title)s',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'wav',
+        }],
+        'external_downloader': 'ffmpeg', 
+        'postprocessor_args': [
+            '-ar', '16000', 
+            '-ac', '1'
+        ],
     }
     os.makedirs('downloads', exist_ok=True)
 
@@ -32,7 +41,7 @@ def main():
     song_name = input("Song name to download: ")
     
     if song_name.strip():
-        download_song_as_m4a(song_name)
+        download_song_as_wav(song_name)
     else:
         print("Invalid name")
 
