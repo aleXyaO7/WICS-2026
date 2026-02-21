@@ -33,7 +33,7 @@ def _row_to_song(row):
         'filename': row.get('url_original'),  # frontend can use url_original for play when from Supabase
         'artists': row.get('artists'),
         'year': row.get('year'),
-        'genre': row.get('genre'),
+        'metadata': row.get('metadata'),
         'url_original': row.get('url_original'),
         'url_drum': row.get('url_drum'),
         'url_bass': row.get('url_bass'),
