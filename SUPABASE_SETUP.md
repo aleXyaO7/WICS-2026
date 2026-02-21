@@ -18,7 +18,7 @@ create table if not exists public.songs (
   title text not null,
   artists text not null,
   year integer,
-  genre text,
+  metadata jsonb,
   url_original text not null,
   url_drum text,
   url_bass text,
@@ -47,12 +47,12 @@ The table stores **URLs** to audio files, not the files themselves. You can:
 Example insert (SQL or via Supabase client):
 
 ```sql
-insert into public.songs (title, artists, year, genre, url_original, url_drum, url_bass, url_piano, url_guitar, url_other)
+insert into public.songs (title, artists, year, metadata, url_original, url_drum, url_bass, url_piano, url_guitar, url_other)
 values (
   'Song Title',
   'Artist One, Artist Two',
   2024,
-  'Rock',
+  '{"genre": "Rock", "album": "Example Album"}'::jsonb,
   'https://example.com/audio/original.mp3',
   'https://example.com/audio/drum.mp3',
   'https://example.com/audio/bass.mp3',
