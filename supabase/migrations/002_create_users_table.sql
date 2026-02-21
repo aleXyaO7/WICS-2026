@@ -1,3 +1,4 @@
+-- Create users table
 drop table if exists public.users;
 
 create table public.users (
@@ -16,7 +17,6 @@ comment on column public.users.email is 'Unique email address for the user';
 comment on column public.users.elo_rating is 'User ELO rating, starts at 1200';
 
 create index users_username_idx on public.users(username);
-
 create index users_email_idx on public.users(email);
 
 create or replace function update_updated_at_column()
