@@ -23,19 +23,23 @@ function App() {
     }
   };
 
+  // Resolve play/download URL: use Supabase url_original when present, else local API
+  const getSongAudioUrl = (song) => {
+    if (song.url_original) return song.url_original;
+    return `${API_URL}/songs/${song.filename}`;
+  };
+
   // Play a specific song by filename
   const playSpecificSong = (filename) => {
-    const song = songs.find(s => s.filename === filename);
-    if (song) {
-      playSong(song);
-    }
+    const song = songs.find(s => s.filename === filename || s.id === filename);
+    if (song) playSong(song);
   };
 
   // Download song to user's computer
   const downloadSong = (song) => {
     const link = document.createElement('a');
-    link.href = `${API_URL}/songs/${song.filename}`;
-    link.download = song.filename;
+    link.href = getSongAudioUrl(song);
+    link.download = song.name || song.filename || 'audio';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -44,9 +48,8 @@ function App() {
   const playSong = (song) => {
     setCurrentSong(song);
     setIsPlaying(true);
-    
     if (audioRef.current) {
-      audioRef.current.src = `${API_URL}/songs/${song.filename}`;
+      audioRef.current.src = getSongAudioUrl(song);
       audioRef.current.play();
     }
   };
