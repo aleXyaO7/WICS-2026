@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from botocore.client import Config
 
 if not os.environ.get("GITHUB_ACTIONS") and not os.environ.get("DYNO"):
+    load_dotenv()   # .env in cwd
+    load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))  # project root
     load_dotenv("env")
 
 def upload_file(filename, bucket, object_name=None):
@@ -24,7 +26,9 @@ def upload_file(filename, bucket, object_name=None):
     '''
     if object_name is None:
         object_name = os.path.basename(filename)
-    client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))
+    access = os.getenv('AWS_ID') or os.getenv('AWS_ACCESS_KEY_ID')
+    secret = os.getenv('AWS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')
+    client = boto3.client('s3', aws_access_key_id=access, aws_secret_access_key=secret)
     try:
         client.upload_file(filename, bucket, object_name)
     except Exception as e:
@@ -49,7 +53,9 @@ def download_file(filename, bucketname, dir):
     boolean
         True if successful, False otherwise
     '''
-    client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))
+    access = os.getenv('AWS_ID') or os.getenv('AWS_ACCESS_KEY_ID')
+    secret = os.getenv('AWS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')
+    client = boto3.client('s3', aws_access_key_id=access, aws_secret_access_key=secret)
     try:
         client.download_file(bucketname, filename, dir)
         print(f"File '{filename}' downloaded from bucket '{bucketname}' to '{dir}'")
@@ -59,31 +65,24 @@ def download_file(filename, bucketname, dir):
     return True
 
 def delete_file(filename, bucketname):
-    client = boto3.client('s3', aws_access_key_id=os.getenv('AWS_ID'), aws_secret_access_key=os.getenv('AWS_KEY'))
+    access = os.getenv('AWS_ID') or os.getenv('AWS_ACCESS_KEY_ID')
+    secret = os.getenv('AWS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')
+    client = boto3.client('s3', aws_access_key_id=access, aws_secret_access_key=secret)
     try:
         client.delete_object(Bucket=bucketname, Key=filename)
-
         print(f"File '{filename}' deleted from bucket '{bucketname}'")
-    except:
+    except Exception:
         print(f"failed to delete {filename} from {bucketname}")
         return False
     return True
 
-def delete_file(filename, bucketname):
-    client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'))
-    try:
-        client.delete_object(Bucket=bucketname, Key=filename)
-    
-        print(f"File '{filename}' deleted from bucket '{bucketname}'")
-    except:
-        print(f"failed to delete {filename} from {bucketname}")
-        return False
-    return True 
-
 def generate_url(filename, bucketname):
-    client = boto3.client('s3', aws_access_key_id = os.getenv('AWS_ID'), aws_secret_access_key = os.getenv('AWS_KEY'), config=Config(
+    access = os.getenv('AWS_ID') or os.getenv('AWS_ACCESS_KEY_ID')
+    secret = os.getenv('AWS_KEY') or os.getenv('AWS_SECRET_ACCESS_KEY')
+    client = boto3.client('s3', aws_access_key_id=access, aws_secret_access_key=secret, config=Config(
             signature_version="s3v4",
             region_name="us-east-2",
         ))
     url = client.generate_presigned_url(ClientMethod='get_object', Params={'Bucket' : bucketname, 'Key' : filename}, ExpiresIn=120)
+    print(f"[S3] presigned URL: bucket={bucketname} key={filename}\n  -> {url}")
     return url
