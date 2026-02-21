@@ -1,7 +1,7 @@
 import yt_dlp
 import os
 
-def download_song_as_mp3(song_name):
+def download_song_as_m4a(song_name):
     ydl_opts = {
         'format': 'bestaudio[ext=m4a]/bestaudio',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
@@ -32,7 +32,7 @@ def main():
     song_name = input("Song name to download: ")
     
     if song_name.strip():
-        download_song_as_mp3(song_name)
+        download_song_as_m4a(song_name)
     else:
         print("Invalid name")
 
