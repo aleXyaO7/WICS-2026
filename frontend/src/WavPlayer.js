@@ -61,19 +61,27 @@ function WavPlayer() {
   const [playingAllStems, setPlayingAllStems] = useState(false);
   const stemSnippetTimers = useRef({});
   const stemClipStartTime = useRef(null);
+  const [currentPosition, setCurrentPosition] = useState(0);
+  const positionUpdateInterval = useRef(null);
+  const [stemVolumes, setStemVolumes] = useState({});
+  
+  // Web Audio API for volume amplification
+  const audioContextRef = useRef(null);
+  const gainNodesRef = useRef([]);
+  const sourceNodesRef = useRef([]);
+  const initialFetchDone = useRef(false);
 
   useEffect(() => {
-    // Fetch songs for music player
+    if (initialFetchDone.current) return;
+    initialFetchDone.current = true;
+    
     fetchSongs();
-    // Fetch a random song for stems on mount
     fetchRandomSong(false);
   }, []);
 
-  // Load stem tracks when random song changes
   useEffect(() => {
     if (!randomSong) return;
     
-    // Build stem tracks from random song
     const tracks = Object.entries(STEM_LABELS)
       .map(([key, label]) => ({
         key,
@@ -83,36 +91,112 @@ function WavPlayer() {
       .filter(track => track.url);
     
     setStemTracks(tracks);
-    stemClipStartTime.current = null; // Reset clip start time
+    
+    if (randomSong.clip_start_time !== undefined) {
+      stemClipStartTime.current = randomSong.clip_start_time;
+    } else {
+      stemClipStartTime.current = null;
+    }
+    
+    setCurrentPosition(0);
+    
+    const initialVolumes = {};
+    tracks.forEach((_, index) => {
+      initialVolumes[index] = 100;
+    });
+    setStemVolumes(initialVolumes);
   }, [randomSong]);
 
-  // Initialize audio refs and calculate synchronized start time for stems
   useEffect(() => {
     if (stemTracks.length === 0) return;
     
     stemAudioRefs.current = stemAudioRefs.current.slice(0, stemTracks.length);
     
-    let loadedCount = 0;
-    const durations = [];
-    
     stemTracks.forEach((_, index) => {
       const audio = stemAudioRefs.current[index];
       if (audio) {
-        audio.addEventListener('loadedmetadata', () => {
-          durations[index] = audio.duration;
-          loadedCount++;
-          
-          if (loadedCount === stemTracks.length && stemClipStartTime.current === null) {
-            const maxStartTimes = durations.map(d => Math.max(0, d - SNIPPET_LENGTH));
-            const minMaxStartTime = Math.min(...maxStartTimes);
-            stemClipStartTime.current = Math.random() * minMaxStartTime;
-            console.log('Stem clip start time:', stemClipStartTime.current);
-          }
-        }, { once: true });
         audio.load();
       }
     });
   }, [stemTracks]);
+
+  useEffect(() => {
+    if (stemTracks.length === 0) return;
+    
+    const timer = setTimeout(() => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      
+      const audioContext = audioContextRef.current;
+      
+      stemAudioRefs.current.forEach((audio, index) => {
+        if (audio && !sourceNodesRef.current[index]) {
+          try {
+            const source = audioContext.createMediaElementSource(audio);
+            
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 1.0; // Start at 100%, will be updated by volume effect
+            
+            source.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            sourceNodesRef.current[index] = source;
+            gainNodesRef.current[index] = gainNode;
+          } catch (error) {
+            if (error.name !== 'InvalidStateError') {
+              console.error('Error setting up Web Audio API for stem', index, error);
+            }
+          }
+        }
+      });
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [stemTracks]);
+
+  useEffect(() => {
+    gainNodesRef.current.forEach((gainNode, index) => {
+      if (gainNode && stemVolumes[index] !== undefined) {
+        gainNode.gain.value = stemVolumes[index] / 100;
+      }
+    });
+  }, [stemVolumes]);
+
+  useEffect(() => {
+    const updatePosition = () => {
+      const playingAudio = stemAudioRefs.current.find(audio => audio && !audio.paused);
+      if (playingAudio) {
+        const relativePosition = playingAudio.currentTime - (stemClipStartTime.current || 0);
+        const newPosition = Math.max(0, Math.min(SNIPPET_LENGTH, relativePosition));
+        setCurrentPosition(newPosition);
+        
+        stemAudioRefs.current.forEach((audio) => {
+          if (audio && audio !== playingAudio) {
+            const expectedTime = (stemClipStartTime.current || 0) + newPosition;
+            if (Math.abs(audio.currentTime - expectedTime) > 0.1) {
+              audio.currentTime = expectedTime;
+            }
+          }
+        });
+      }
+    };
+
+    if (playingAllStems || Object.values(stemPlayingStates).some(state => state)) {
+      positionUpdateInterval.current = setInterval(updatePosition, 100);
+    } else {
+      if (positionUpdateInterval.current) {
+        clearInterval(positionUpdateInterval.current);
+        positionUpdateInterval.current = null;
+      }
+    }
+
+    return () => {
+      if (positionUpdateInterval.current) {
+        clearInterval(positionUpdateInterval.current);
+      }
+    };
+  }, [playingAllStems, stemPlayingStates]);
 
   const fetchSongs = async () => {
     try {
@@ -130,7 +214,9 @@ function WavPlayer() {
       setPlayingStem(null);
     }
     try {
-      const response = await axios.get(`${API_URL}/songs/random`);
+      const response = await axios.get(`${API_URL}/songs/random`, {
+        params: { snippet_length: SNIPPET_LENGTH }
+      });
       setRandomSong(response.data);
       if (!showLoading) {
         console.log('Loaded random song for stems:', response.data.name);
@@ -186,20 +272,39 @@ function WavPlayer() {
     const audio = stemAudioRefs.current[index];
     if (!audio) return;
 
-    const startTime = stemClipStartTime.current || 0;
-    
-    audio.currentTime = startTime;
-    audio.play();
+    // Resume AudioContext if suspended (required by browsers)
+    if (audioContextRef.current) {
+      if (audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().then(() => {
+          console.log('AudioContext resumed');
+        });
+      }
+    }
+
+    // If at the end, restart from beginning
+    let playPosition = currentPosition;
+    if (currentPosition >= SNIPPET_LENGTH - 0.1) {
+      playPosition = 0;
+      setCurrentPosition(0);
+    }
+
+    const absoluteTime = (stemClipStartTime.current || 0) + playPosition;
+    audio.currentTime = absoluteTime;
+    audio.play().catch(err => console.error('Error playing audio:', err));
     setStemPlayingStates((prev) => ({ ...prev, [index]: true }));
 
     if (stemSnippetTimers.current[index]) {
       clearTimeout(stemSnippetTimers.current[index]);
     }
+    
+    // Calculate remaining time from current position to end
+    const remainingTime = (SNIPPET_LENGTH - playPosition) * 1000;
     stemSnippetTimers.current[index] = setTimeout(() => {
       audio.pause();
       setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
       delete stemSnippetTimers.current[index];
-    }, SNIPPET_LENGTH * 1000);
+      setCurrentPosition(SNIPPET_LENGTH);
+    }, remainingTime);
   };
 
   const pauseStemClip = (index) => {
@@ -227,6 +332,7 @@ function WavPlayer() {
     audio.pause();
     audio.currentTime = stemClipStartTime.current || 0;
     setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
+    setCurrentPosition(0);
   };
 
   const playAllStems = () => {
@@ -251,6 +357,7 @@ function WavPlayer() {
       }
     });
     setPlayingAllStems(false);
+    setCurrentPosition(0);
   };
 
   const pauseAllStems = () => {
@@ -264,6 +371,45 @@ function WavPlayer() {
 
   const handleStemTrackEnded = (index) => {
     setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
+  };
+
+  const handleSliderChange = (e) => {
+    const newPosition = parseFloat(e.target.value);
+    setCurrentPosition(newPosition);
+    
+    // Update all audio elements to the new position (both playing and paused)
+    const absoluteTime = (stemClipStartTime.current || 0) + newPosition;
+    stemAudioRefs.current.forEach((audio) => {
+      if (audio) {
+        audio.currentTime = absoluteTime;
+      }
+    });
+    
+    // Update timers for any playing stems
+    stemAudioRefs.current.forEach((audio, index) => {
+      if (audio && !audio.paused && stemSnippetTimers.current[index]) {
+        clearTimeout(stemSnippetTimers.current[index]);
+        const remainingTime = (SNIPPET_LENGTH - newPosition) * 1000;
+        if (remainingTime > 0) {
+          stemSnippetTimers.current[index] = setTimeout(() => {
+            audio.pause();
+            setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
+            delete stemSnippetTimers.current[index];
+            setCurrentPosition(SNIPPET_LENGTH);
+          }, remainingTime);
+        }
+      }
+    });
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleVolumeChange = (index, value) => {
+    setStemVolumes((prev) => ({ ...prev, [index]: parseInt(value) }));
   };
 
   const singleStemEntries = randomSong
@@ -318,6 +464,7 @@ function WavPlayer() {
           )}
           <audio
             ref={stemAudioRef}
+            crossOrigin="anonymous"
             onEnded={() => setPlayingStem(null)}
             onPause={() => setPlayingStem(null)}
           />
@@ -358,6 +505,7 @@ function WavPlayer() {
             </div>
             <audio
               ref={musicAudioRef}
+              crossOrigin="anonymous"
               onEnded={() => setIsPlaying(false)}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
@@ -378,6 +526,20 @@ function WavPlayer() {
               Restart All
             </button>
           </div>
+          
+          <div className="playback-slider-container">
+            <span className="time-label">{formatTime(currentPosition)}</span>
+            <input
+              type="range"
+              min="0"
+              max={SNIPPET_LENGTH}
+              step="0.1"
+              value={currentPosition}
+              onChange={handleSliderChange}
+              className="playback-slider"
+            />
+            <span className="time-label">{formatTime(SNIPPET_LENGTH)}</span>
+          </div>
         </div>
 
         <div className="tracks-section">
@@ -388,7 +550,21 @@ function WavPlayer() {
             <div className="tracks-list">
               {stemTracks.map((track, index) => (
                 <div key={track.key} className="track-item">
-                  <span className="track-name">{track.label}</span>
+                  <div className="track-header">
+                    <span className="track-name">{track.label}</span>
+                    <div className="volume-control">
+                      <span className="volume-icon">🔊</span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={stemVolumes[index] || 100}
+                        onChange={(e) => handleVolumeChange(index, e.target.value)}
+                        className="volume-slider"
+                      />
+                      <span className="volume-value">{stemVolumes[index] || 100}%</span>
+                    </div>
+                  </div>
                   <div className="track-buttons">
                     <button
                       className={`track-btn ${stemPlayingStates[index] ? 'playing' : ''}`}
@@ -412,8 +588,11 @@ function WavPlayer() {
                     </button>
                   </div>
                   <audio
-                    ref={(el) => (stemAudioRefs.current[index] = el)}
+                    ref={(el) => {
+                      stemAudioRefs.current[index] = el;
+                    }}
                     src={track.url}
+                    crossOrigin="anonymous"
                     onEnded={() => handleStemTrackEnded(index)}
                     onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [index]: true }))}
                     onPause={() => setStemPlayingStates((prev) => ({ ...prev, [index]: false }))}

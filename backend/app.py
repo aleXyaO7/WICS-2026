@@ -126,6 +126,7 @@ def get_random_song():
     if not supabase_client:
         return jsonify({'error': 'Supabase not configured'}), 503
     bucket = os.environ.get('S3_BUCKET') or os.environ.get('AWS_S3_BUCKET')
+    snippet_length = float(request.args.get('snippet_length', 15))
     try:
         r = supabase_client.table('songs').select('*').execute()
         rows = r.data or []
@@ -141,6 +142,17 @@ def get_random_song():
             stems = _stem_urls_for_song(url_original, bucket)
             for k, v in stems.items():
                 song[k] = v
+        
+        duration = row.get('duration')
+        if duration and duration > snippet_length:
+            max_start_time = duration - snippet_length
+            clip_start_time = random.random() * max_start_time
+        else:
+            default_duration = 180.0
+            max_start_time = max(0, default_duration - snippet_length)
+            clip_start_time = random.random() * max_start_time
+        
+        song['clip_start_time'] = clip_start_time
         return jsonify(song)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
