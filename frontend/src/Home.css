@@ -91,6 +91,76 @@
   background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
 }
 
+.home-subtitle {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1.3rem;
+  margin-bottom: 50px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  animation: fadeIn 1s ease-out;
+}
+
+.home-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeInUp 1s ease-out;
+}
+
+.home-button {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 25px 30px;
+  background: white;
+  border-radius: 15px;
+  text-decoration: none;
+  color: #333;
+  transition: transform 0.3s, box-shadow 0.3s;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+}
+
+.home-button:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.home-button:active {
+  transform: translateY(-2px);
+}
+
+.button-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.button-text {
+  text-align: left;
+  flex: 1;
+}
+
+.button-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 5px;
+}
+
+.button-desc {
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.player-button:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+}
+
+.login-button:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+}
+
+.signup-button:hover {
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+}
+
 @keyframes fadeInDown {
   from {
     opacity: 0;
