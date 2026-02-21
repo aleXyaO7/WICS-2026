@@ -37,3 +37,5 @@ Thumbs.db
 .env.local
 
 *.log
+
+backend/downloads/
