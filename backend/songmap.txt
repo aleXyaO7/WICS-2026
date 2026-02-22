@@ -4,7 +4,7 @@ iris,6Qyc6fS4DsZjB2mRW9DsQs
 uptown-funk,32OlwWuMpZ6b0aN2RZOeMS
 hotel-california,40riOy7x9W7GXjyGp4pjAv
 billie-jean,5ChkMS8OtdzJeqyybCc9R5
-mr.-brightside,3n3Ppam7vgaVa1iaRUc9Lp
+mr-brightside,3n3Ppam7vgaVa1iaRUc9Lp
 wonderwall,5qqabIl2vWzo9ApSC317sa
 let-it-be,7iN1s7xHE4ifF5povM6A48
 piano-man,6zC0mpGYwbNTpk9SKwh08f

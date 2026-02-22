@@ -28,7 +28,6 @@ h2 {
   font-size: 1.3rem;
 }
 
-/* Download Section */
 .download-section {
   margin-bottom: 40px;
   padding-bottom: 30px;
@@ -253,7 +252,6 @@ h2 {
   color: white;
 }
 
-/* Audio Player */
 .player {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -304,6 +302,204 @@ h2 {
   transform: scale(0.95);
 }
 
+.results-section {
+  margin-top: 30px;
+}
+
+.song-comparison {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 30px;
+  padding: 25px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 15px;
+}
+
+.comparison-item {
+  flex: 1;
+  text-align: center;
+}
+
+.comparison-item h3 {
+  color: #667eea;
+  font-size: 1rem;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.song-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.song-artists {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.comparison-arrow {
+  font-size: 2rem;
+  color: #667eea;
+  font-weight: bold;
+}
+
+.similarity-score {
+  text-align: center;
+  padding: 30px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 15px;
+  margin-bottom: 30px;
+  color: white;
+}
+
+.similarity-score h2 {
+  color: white;
+  margin-bottom: 15px;
+  font-size: 1.5rem;
+}
+
+.score-value {
+  font-size: 4rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.score-description {
+  font-size: 1.1rem;
+  opacity: 0.9;
+}
+
+.similarity-breakdown {
+  padding: 25px;
+  background: #f8f9fa;
+  border-radius: 15px;
+}
+
+.similarity-breakdown h3 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.breakdown-label {
+  font-weight: 600;
+  color: #333;
+  text-transform: capitalize;
+}
+
+.breakdown-value {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.1rem;
+}
+
+/* Metadata Comparison */
+.metadata-comparison {
+  margin-top: 30px;
+  padding: 25px;
+  background: #f8f9fa;
+  border-radius: 15px;
+}
+
+.metadata-comparison h3 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  background: #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.metadata-grid-4col {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.metadata-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px;
+  font-weight: 600;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.metadata-header.actual-header {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.metadata-header.guessed-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.metadata-header.match-header {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+}
+
+.metadata-row-label {
+  background: white;
+  padding: 15px;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+}
+
+.metadata-value {
+  background: white;
+  padding: 15px;
+  text-align: center;
+  font-size: 1rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metadata-value.metadata-actual {
+  background: rgba(40, 167, 69, 0.05);
+  border-left: 3px solid #28a745;
+}
+
+.metadata-value.metadata-guessed {
+  background: rgba(245, 87, 108, 0.05);
+  border-left: 3px solid #f5576c;
+}
+
+.metadata-value.metadata-match {
+  background: rgba(255, 193, 7, 0.05);
+  border-left: 3px solid #ffc107;
+  font-weight: 600;
+  color: #ff9800;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .container {
@@ -316,5 +512,37 @@ h2 {
 
   .download-section form {
     flex-direction: column;
+  }
+
+  .song-comparison {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .comparison-arrow {
+    transform: rotate(90deg);
+  }
+
+  .score-value {
+    font-size: 3rem;
+  }
+
+  .metadata-grid {
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+
+  .metadata-grid-4col {
+    grid-template-columns: 1fr;
+  }
+
+  .metadata-header:first-child {
+    display: none;
+  }
+
+  .metadata-row-label {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
   }
 }

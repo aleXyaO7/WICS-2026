@@ -96,6 +96,6 @@ def calculate_similarity(orig_id, guess_id, start_second, duration=15):
         metadata_diff['loud'],
     ])
     weights = np.array([0.4, 0.2, 0.15, 0.1, 0.1, 0.05])
-    return np.sum(characteristics * weights), orig_metadata, guess_metadata
+    return np.sum(characteristics * weights), orig_metadata, guess_metadata, metadata_diff
 
 # Example usage: calculate_similarity('blinding-lights', 'see-you-again', 10, 15)

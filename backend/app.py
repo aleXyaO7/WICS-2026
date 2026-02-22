@@ -2,6 +2,7 @@ from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+from similarity_score import calculate_similarity
 
 app = Flask(__name__)
 CORS(app)
@@ -14,6 +15,21 @@ try:
     load_dotenv()
 except ImportError:
     pass
+
+# Load songmap for similarity scoring
+spotify_to_songname = {}
+songname_to_spotify = {}
+try:
+    songmap_path = os.path.join(os.path.dirname(__file__), 'songmap.txt')
+    with open(songmap_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and ',' in line:
+                song_name, spotify_id = line.split(',', 1)
+                spotify_to_songname[spotify_id] = song_name
+                songname_to_spotify[song_name] = spotify_id
+except Exception as e:
+    print(f"Warning: Could not load songmap.txt: {e}")
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_KEY')
@@ -192,6 +208,128 @@ def get_stem_urls():
     stems = _stem_urls_for_song(url_original)
     out = {'url_original': url_original, **stems}
     return jsonify(out)
+
+
+@app.route('/api/guess', methods=['POST'])
+def submit_guess():
+    """Compare a guessed song with the actual song and return similarity data."""
+    try:
+        if not supabase_client:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        data = request.get_json()
+        actual_song_id = data.get('actual_song_id')
+        guessed_song_id = data.get('guessed_song_id')
+        clip_start_time = data.get('clip_start_time', 0)
+        
+        if not actual_song_id or not guessed_song_id:
+            return jsonify({'error': 'Missing actual_song_id or guessed_song_id'}), 400
+        
+        # Fetch both songs from the database
+        actual_song_result = supabase_client.table('songs').select('*').eq('id', actual_song_id).execute()
+        guessed_song_result = supabase_client.table('songs').select('*').eq('id', guessed_song_id).execute()
+        
+        if not actual_song_result.data or not guessed_song_result.data:
+            return jsonify({'error': 'One or both songs not found'}), 404
+        
+        actual_song_row = actual_song_result.data[0]
+        guessed_song_row = guessed_song_result.data[0]
+        actual_song = _row_to_song(actual_song_row)
+        guessed_song = _row_to_song(guessed_song_row)
+        
+        is_correct = actual_song_id == guessed_song_id
+        
+        # Get spotify IDs and convert to songmap format
+        actual_spotify_id = actual_song_row.get('spotify_id')
+        guessed_spotify_id = guessed_song_row.get('spotify_id')
+        
+        if not actual_spotify_id or not guessed_spotify_id:
+            return jsonify({'error': 'Songs missing spotify_id field'}), 400
+        
+        # Convert spotify IDs to songmap format (e.g., 'blinding-lights')
+        actual_song_name = spotify_to_songname.get(actual_spotify_id)
+        guessed_song_name = spotify_to_songname.get(guessed_spotify_id)
+
+        print("ACTUAL SONG NAME:", actual_song_name)
+        print("GUESSED SONG NAME:", guessed_song_name)
+        
+        if not actual_song_name or not guessed_song_name:
+            return jsonify({
+                'error': f'Song not found in songmap: actual={actual_spotify_id}, guessed={guessed_spotify_id}'
+            }), 404
+        
+        # Calculate real similarity using the similarity_score module
+        try:
+            overall_score, actual_metadata, guessed_metadata, metadata_breakdown = calculate_similarity(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
+            similarity_percentage = int(overall_score * 100)
+
+            
+            breakdown = {
+                'Key Match': int(metadata_breakdown['key'] * 100),
+                'Tempo Match': int(metadata_breakdown['tempo'] * 100),
+                'Energy Match': int(metadata_breakdown['energy'] * 100),
+                'Mood Match': int(metadata_breakdown['mood'] * 100),
+                'Loudness Match': int(metadata_breakdown['loud'] * 100),
+            }
+            
+            actual_song_metadata = {
+                'key': actual_metadata.get('key'),
+                'mode': actual_metadata.get('mode'),
+                'tempo': round(actual_metadata.get('tempo', 0), 1),
+                'energy': round(actual_metadata.get('energy', 0), 2),
+                'valence': round(actual_metadata.get('valence', 0), 2),
+                'loudness': round(actual_metadata.get('loudness', 0), 2),
+            }
+            
+            guessed_song_metadata = {
+                'key': guessed_metadata.get('key'),
+                'mode': guessed_metadata.get('mode'),
+                'tempo': round(guessed_metadata.get('tempo', 0), 1),
+                'energy': round(guessed_metadata.get('energy', 0), 2),
+                'valence': round(guessed_metadata.get('valence', 0), 2),
+                'loudness': round(guessed_metadata.get('loudness', 0), 2),
+            }
+            
+            # Generate message based on score
+            if is_correct:
+                message = "Perfect match! You guessed correctly!"
+            elif similarity_percentage >= 80:
+                message = "Incredible! These songs are extremely similar!"
+            elif similarity_percentage >= 70:
+                message = "Very close! The songs share many characteristics."
+            elif similarity_percentage >= 50:
+                message = "Somewhat similar, but not quite right."
+            else:
+                message = "Not very similar. Keep trying!"
+            
+        except Exception as similarity_error:
+            print(f"Error calculating similarity: {similarity_error}")
+            import traceback
+            traceback.print_exc()
+            # Fallback to simple comparison if similarity calculation fails
+            if is_correct:
+                similarity_percentage = 100
+                message = "Perfect match! You guessed correctly!"
+            else:
+                similarity_percentage = 50
+                message = "Unable to calculate detailed similarity."
+            breakdown = {}
+            actual_song_metadata = {}
+            guessed_song_metadata = {}
+        
+        return jsonify({
+            'actual_song': actual_song,
+            'guessed_song': guessed_song,
+            'actual_song_metadata': actual_song_metadata,
+            'guessed_song_metadata': guessed_song_metadata,
+            'similarity_score': similarity_percentage,
+            'message': message,
+            'breakdown': breakdown,
+            'is_correct': is_correct
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/health', methods=['GET'])
