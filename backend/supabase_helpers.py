@@ -1,4 +1,5 @@
 import os
+import re
 
 try:
     from dotenv import load_dotenv
@@ -141,8 +142,77 @@ def insert_song(
     return rows[0]
 
 
+def load_songs_from_txt(txt_path: str, bucket: str | None = None):
+    """
+    Read a txt file of comma-separated lines: song_name, artist, year, spotify_id.
+    For each line: download the song via download_song (YouTube -> WAV), upload to S3,
+    then insert_song with url_original = the S3 WAV URL and metadata from ReccoBeats.
+
+    Blank lines and lines that don't parse to 4 fields are skipped. If download/upload
+    fails for a line, that line is skipped.
+
+    Parameters
+    ----------
+    txt_path : str
+        Path to the file (e.g. backend/downloads/songs.txt).
+    bucket : str | None
+        S3 bucket name. If None, uses env AWS_S3_BUCKET or S3_BUCKET.
+
+    Returns
+    -------
+    list[dict]
+        List of inserted row dicts (one per successful insert). Failed lines are skipped.
+    """
+    from download_song import download_and_upload_to_s3
+    from recco_beats import get_metadata_for_track
+
+    if bucket is None:
+        bucket = os.environ.get("AWS_S3_BUCKET") or os.environ.get("S3_BUCKET")
+    if not bucket:
+        raise RuntimeError("S3 bucket required: set AWS_S3_BUCKET or S3_BUCKET or pass bucket=")
+
+    inserted = []
+    with open(txt_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in line.rsplit(",", 3)]
+            if len(parts) != 4:
+                continue
+            title, artist, year_str, spotify_id = parts
+            try:
+                year = int(year_str)
+            except ValueError:
+                continue
+            song_name = f"{title} {artist}"
+            # object_name = f"{spotify_id}.wav"
+            slug = re.sub(r"[^a-z0-9-]", "", title.lower().replace(" ", "-"))
+            object_name = f"{slug}.wav" if slug else f"{spotify_id}.wav"
+            url_original = download_and_upload_to_s3(song_name, bucket, object_name)
+            if url_original is None:
+                continue
+            metadata = get_metadata_for_track(spotify_id)
+            row = insert_song(
+                spotify_id=spotify_id,
+                title=title,
+                artists=artist,
+                year=year,
+                metadata=metadata,
+                url_original=url_original,
+            )
+            if row is not None:
+                inserted.append(row)
+    return inserted
+
+
 if __name__ == "__main__":
-    spotify_id = "0VjIjW4GlUZAMYd2vXMi3b"
-    print(f"Testing get_metadata_by_spotify_id({spotify_id!r})")
-    result = get_metadata_by_spotify_id(spotify_id)
-    print("Result:", result)
+    import sys
+    if len(sys.argv) < 2:
+        print("Usage: python supabase_helpers.py <filename>", file=sys.stderr)
+        print("  e.g. python supabase_helpers.py downloads/songs.txt", file=sys.stderr)
+        sys.exit(1)
+    filename = sys.argv[1]
+    bucket = "wics-2026-audio"
+    inserted = load_songs_from_txt(filename, bucket=bucket)
+    print(f"Inserted {len(inserted)} songs")

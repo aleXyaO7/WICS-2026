@@ -29,10 +29,10 @@ def download_song_as_wav(song_name):
             if 'entries' in info:
                 video = info['entries'][0]
                 print(f"Downloaded {video['title']}")
-                print(f"Saved {video['title']}.m4a")
+                print(f"Saved {video['title']}.wav")
             else:
                 print(f"Downloaded {info['title']}")
-                print(f"Saved {info['title']}.m4a")
+                print(f"Saved {info['title']}.wav")
                 
     except Exception as e:
         print(f"Error downloading song: {e}")
@@ -54,8 +54,8 @@ def download_and_upload_to_s3(song_name, bucket, object_name=None):
 
     Returns
     -------
-    bool
-        True if both download and upload succeeded, False otherwise.
+    str | None
+        URL https://{bucket}.s3.us-east-2.amazonaws.com/{object_name} on success, None otherwise.
     """
     import glob
     import aws
@@ -66,7 +66,7 @@ def download_and_upload_to_s3(song_name, bucket, object_name=None):
     wavs = glob.glob(os.path.join(downloads_dir, "*.wav"))
     if not wavs:
         print("No WAV file found in downloads/ after download.")
-        return False
+        return None
 
     latest_wav = max(wavs, key=os.path.getmtime)
     if object_name is None:
@@ -75,9 +75,10 @@ def download_and_upload_to_s3(song_name, bucket, object_name=None):
         object_name = object_name.rstrip("/") + ".wav"
 
     if not aws.upload_file(latest_wav, bucket, object_name):
-        return False
-    print(f"Uploaded to https://{bucket}.s3.us-east-2.amazonaws.com/{object_name}")
-    return True
+        return None
+    url = f"https://{bucket}.s3.us-east-2.amazonaws.com/{object_name}"
+    print(f"Uploaded to {url}")
+    return url
 
 
 def main():
@@ -95,8 +96,8 @@ if __name__ == "__main__":
         song_name = sys.argv[2]
         bucket = sys.argv[3]
         object_name = sys.argv[4] if len(sys.argv) > 4 else None
-        ok = download_and_upload_to_s3(song_name, bucket, object_name)
-        sys.exit(0 if ok else 1)
+        url = download_and_upload_to_s3(song_name, bucket, object_name)
+        sys.exit(0 if url else 1)
     elif len(sys.argv) == 2:
         song_name = sys.argv[1]
         if song_name.strip():
