@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import WaveSurfer from 'wavesurfer.js';
 import './WavPlayer.css';
@@ -44,6 +44,7 @@ function getStemUrl(song, stemKey) {
 
 function WavPlayer() {
   const API_URL = 'http://localhost:5001/api';
+  const navigate = useNavigate();
   
   // Music player state
   const [songs, setSongs] = useState([]);
@@ -54,6 +55,9 @@ function WavPlayer() {
   const [playingStem, setPlayingStem] = useState(null);
   const musicAudioRef = useRef(null);
   const stemAudioRef = useRef(null);
+
+  // Song guessing state
+  const [guessedSongId, setGuessedSongId] = useState('');
 
   // Stems player state (for synchronized multi-stem playback)
   const [stemTracks, setStemTracks] = useState([]);
@@ -528,6 +532,26 @@ function WavPlayer() {
     setStemVolumes((prev) => ({ ...prev, [index]: parseInt(value) }));
   };
 
+  const handleSubmitGuess = () => {
+    if (!guessedSongId) {
+      alert('Please select a song guess');
+      return;
+    }
+    
+    if (!randomSong || !randomSong.id) {
+      alert('No song is currently loaded');
+      return;
+    }
+
+    // Navigate to results page with song IDs
+    navigate('/results', {
+      state: {
+        actualSongId: randomSong.id,
+        guessedSongId: guessedSongId
+      }
+    });
+  };
+
   const singleStemEntries = randomSong
     ? Object.entries(STEM_LABELS)
         .map(([key, label]) => [key, label, getStemUrl(randomSong, key)])
@@ -586,26 +610,33 @@ function WavPlayer() {
           />
         </div>
 
-        <div className="songs-section">
-          <h2>My Songs ({songs.length})</h2>
-          {songs.length === 0 ? (
-            <p className="empty">No songs yet. Download songs using the backend script!</p>
-          ) : (
-            <div className="song-list">
+        <div className="guess-section">
+          <h2>Make Your Guess</h2>
+          <p className="guess-instructions">
+            Listen to the stems above and guess which song it is!
+          </p>
+          <div className="guess-controls">
+            <select 
+              className="song-dropdown"
+              value={guessedSongId}
+              onChange={(e) => setGuessedSongId(e.target.value)}
+              disabled={!randomSong}
+            >
+              <option value="">Select a song...</option>
               {songs.map((song) => (
-                <div
-                  key={song.id}
-                  className={`song-item ${currentSong?.id === song.id ? 'active' : ''}`}
-                  onClick={() => playSong(song)}
-                >
-                  <span className="song-name">{song.name}</span>
-                  <span className="play-icon">
-                    {currentSong?.id === song.id && isPlaying ? '⏸' : '▶'}
-                  </span>
-                </div>
+                <option key={song.id} value={song.id}>
+                  {song.name}
+                </option>
               ))}
-            </div>
-          )}
+            </select>
+            <button 
+              className="submit-guess-btn"
+              onClick={handleSubmitGuess}
+              disabled={!guessedSongId || !randomSong}
+            >
+              Submit Guess
+            </button>
+          </div>
         </div>
 
         {currentSong && (

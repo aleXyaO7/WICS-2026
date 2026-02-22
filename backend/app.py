@@ -194,6 +194,68 @@ def get_stem_urls():
     return jsonify(out)
 
 
+@app.route('/api/guess', methods=['POST'])
+def submit_guess():
+    """Compare a guessed song with the actual song and return similarity data."""
+    try:
+        if not supabase_client:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        data = request.get_json()
+        actual_song_id = data.get('actual_song_id')
+        guessed_song_id = data.get('guessed_song_id')
+        
+        if not actual_song_id or not guessed_song_id:
+            return jsonify({'error': 'Missing actual_song_id or guessed_song_id'}), 400
+        
+        # Fetch both songs from the database
+        actual_song_result = supabase_client.table('songs').select('*').eq('id', actual_song_id).execute()
+        guessed_song_result = supabase_client.table('songs').select('*').eq('id', guessed_song_id).execute()
+        
+        if not actual_song_result.data or not guessed_song_result.data:
+            return jsonify({'error': 'One or both songs not found'}), 404
+        
+        actual_song = _row_to_song(actual_song_result.data[0])
+        guessed_song = _row_to_song(guessed_song_result.data[0])
+        
+        # Generate dummy similarity score
+        import random
+        is_correct = actual_song_id == guessed_song_id
+        
+        if is_correct:
+            similarity_score = 100
+            message = "Perfect match! You guessed correctly!"
+        else:
+            similarity_score = random.randint(20, 80)
+            if similarity_score >= 70:
+                message = "Very close! The songs are quite similar."
+            elif similarity_score >= 50:
+                message = "Somewhat similar, but not quite right."
+            else:
+                message = "Not very similar. Try again!"
+        
+        # Generate dummy breakdown by instrument
+        breakdown = {
+            'drums': random.randint(30, 95) if not is_correct else 100,
+            'bass': random.randint(30, 95) if not is_correct else 100,
+            'piano': random.randint(30, 95) if not is_correct else 100,
+            'guitar': random.randint(30, 95) if not is_correct else 100,
+            'vocals': random.randint(30, 95) if not is_correct else 100,
+        }
+        
+        return jsonify({
+            'actual_song': actual_song,
+            'guessed_song': guessed_song,
+            'similarity_score': similarity_score,
+            'message': message,
+            'breakdown': breakdown,
+            'is_correct': is_correct
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok'})

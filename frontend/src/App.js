@@ -4,6 +4,7 @@ import Home from './Home';
 import WavPlayer from './WavPlayer';
 import Login from './Login';
 import Signup from './Signup';
+import Results from './Results';
 import './App.css';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
         <Route path="/player" element={<WavPlayer />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/results" element={<Results />} />
       </Routes>
     </Router>
   );
