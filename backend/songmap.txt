@@ -11,7 +11,7 @@ piano-man,6zC0mpGYwbNTpk9SKwh08f
 clocks,0BCPKOYdS2jbQ8iyB56Zns
 viva-la-vida,1mea3bSkSGXuIRvnydlB5b
 africa,2374M0fQpWi3dLnB54qaLX
-livin'-on-a-prayer,37ZJ0p5Jm13JPevGcx4SkF
+livin-on-a-prayer,37ZJ0p5Jm13JPevGcx4SkF
 shallow,2VxeLyX666F8uXCJ0dZF8B
 radioactive,62yJjFtgkhUrXktIoSjgP2
 seven-nation-army,3dPQuX8Gs42Y7b454ybpMR
@@ -21,7 +21,7 @@ creep,70LcF31zb1H0PyJoS1Sx1r
 sweet-home-alabama,7e89621JPkKaeDSTQ3avtg
 every-breath-you-take,5HNCy40Ni5BZJFw1TKzRsC
 come-together,2EqlS6tkEnglzr7tkKAAYD
-don't-look-back-in-anger,0UvCh63URrLFcPkKt99hHd
+dont-look-back-in-anger,0UvCh63URrLFcPkKt99hHd
 the-scientist,75JFxkI2RXiU7L9VXzMkle
 hey-there-delilah,4RCWB3V8V0dignt99LZ8vH
 bad-romance,0SiywuOBRcynK0uKGWdCnn
@@ -33,7 +33,7 @@ anti-hero,0V3wPSX9ygBnCm8psDIegu
 good-4-u,4ZtFanR9U6ndgddUvNcjcG
 heat-waves,3USxtqRwSYz57Ewm6wWRMp
 drivers-license,5wANPM4fQCJwkGd4rN57mH
-don't-start-now,3PfIrDoz19wz7qK7tYeu62
+dont-start-now,3PfIrDoz19wz7qK7tYeu62
 easy-on-me,46IZ0fSY2mpAiktS3KOqds
 vampire,5kHMfzgLZP95O9NBy0ku4v
 cruel-summer,1BxfuPKGuaTgP7aM0Bbdwr
