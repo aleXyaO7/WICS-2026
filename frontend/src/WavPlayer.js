@@ -667,255 +667,169 @@ function WavPlayer() {
     <ThemeProvider theme={theme}>
       <div className="wav-player">
         <div className="wav-container">
-        <div className="two-pane-layout">
-          <div className="left-pane">
-            <div className="tracks-section">
-              {stemTracks.length === 0 ? (
-                <p className="empty">Loading instrumental stems...</p>
-              ) : (
-                <div className="tracks-list">
-                  {stemTracks.slice(0, 3).map((track, index) => (
-                    <div key={track.key} className="track-item">
-                      <div className="track-name-header">
-                        <span className="track-name">{track.label}</span>
-                        <IconButton
-                          onClick={() => toggleVolumeControl(index)}
-                          size="small"
-                          sx={{
-                            color: 'primary.main',
-                            marginLeft: '8px',
-                            '&:hover': {
-                              backgroundColor: 'rgba(103, 80, 164, 0.1)',
-                            },
-                          }}
-                          aria-label={`Toggle ${track.label} volume control`}
-                        >
-                          {stemVolumes[index] === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
-                        </IconButton>
-                        {volumeControlsVisible[index] && (
-                          <>
-                            <Slider
-                              orientation="horizontal"
-                              value={stemVolumes[index] !== undefined ? stemVolumes[index] : 0}
-                              onChange={handleVolumeChange(index)}
-                              min={0}
-                              max={200}
-                              step={1}
-                              aria-label={`${track.label} volume`}
-                              sx={{
-                                flex: 1,
-                                marginLeft: '15px',
-                                marginRight: '10px',
-                                color: 'primary.main',
-                                '& .MuiSlider-thumb': {
-                                  width: 14,
-                                  height: 14,
-                                },
-                                '& .MuiSlider-track': {
-                                  height: 3,
-                                },
-                                '& .MuiSlider-rail': {
-                                  height: 3,
-                                  opacity: 0.3,
-                                },
-                              }}
-                            />
-                            <span className="volume-value">{stemVolumes[index] !== undefined ? stemVolumes[index] : 0}%</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="track-content">
-                        <div 
-                          ref={(el) => {
-                            waveformContainerRefs.current[index] = el;
-                          }}
-                          className="waveform-container"
-                        />
-                      </div>
-                      <audio
-                        ref={(el) => {
-                          stemAudioRefs.current[index] = el;
+        <div className="single-column-layout">
+          <div className="tracks-section">
+            {stemTracks.length === 0 ? (
+              <p className="empty">Loading instrumental stems...</p>
+            ) : (
+              <div className="tracks-table">
+                {stemTracks.map((track, index) => (
+                  <div key={track.key} className="track-row">
+                    <div className="track-controls">
+                      <span className="track-name">{track.label}</span>
+                      <IconButton
+                        onClick={() => toggleVolumeControl(index)}
+                        size="small"
+                        sx={{
+                          color: 'primary.main',
+                          marginLeft: '8px',
+                          '&:hover': {
+                            backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                          },
                         }}
-                        src={track.url}
-                        crossOrigin="anonymous"
-                        onEnded={() => handleStemTrackEnded(index)}
-                        onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [index]: true }))}
-                        onPause={() => setStemPlayingStates((prev) => ({ ...prev, [index]: false }))}
+                        aria-label={`Toggle ${track.label} volume control`}
+                      >
+                        {stemVolumes[index] === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                      </IconButton>
+                      {volumeControlsVisible[index] && (
+                        <>
+                          <Slider
+                            orientation="horizontal"
+                            value={stemVolumes[index] !== undefined ? stemVolumes[index] : 0}
+                            onChange={handleVolumeChange(index)}
+                            min={0}
+                            max={200}
+                            step={1}
+                            aria-label={`${track.label} volume`}
+                            sx={{
+                              width: 80,
+                              marginLeft: '8px',
+                              marginRight: '6px',
+                              color: 'primary.main',
+                              '& .MuiSlider-thumb': {
+                                width: 14,
+                                height: 14,
+                              },
+                              '& .MuiSlider-track': {
+                                height: 3,
+                              },
+                              '& .MuiSlider-rail': {
+                                height: 3,
+                                opacity: 0.3,
+                              },
+                            }}
+                          />
+                          <span className="volume-value">{stemVolumes[index] !== undefined ? stemVolumes[index] : 0}%</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="track-waveform">
+                      <div 
+                        ref={(el) => {
+                          waveformContainerRefs.current[index] = el;
+                        }}
+                        className="waveform-container"
                       />
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
+                    <audio
+                      ref={(el) => {
+                        stemAudioRefs.current[index] = el;
+                      }}
+                      src={track.url}
+                      crossOrigin="anonymous"
+                      onEnded={() => handleStemTrackEnded(index)}
+                      onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [index]: true }))}
+                      onPause={() => setStemPlayingStates((prev) => ({ ...prev, [index]: false }))}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-            <div className="master-controls">
-              <div className="playback-slider-container">
-                <span className="time-label">{formatTime(currentPosition)}</span>
-                <Slider
-                  value={currentPosition}
-                  onChange={handleSliderChange}
-                  min={0}
-                  max={SNIPPET_LENGTH}
-                  step={0.1}
-                  aria-label="Playback position"
-                  sx={{
-                    flex: 1,
-                    mx: 2,
-                    color: 'primary.main',
-                    '& .MuiSlider-thumb': {
-                      width: 16,
-                      height: 16,
-                    },
-                    '& .MuiSlider-track': {
-                      height: 4,
-                    },
-                    '& .MuiSlider-rail': {
-                      height: 4,
-                      opacity: 0.3,
-                    },
-                  }}
-                />
-                <span className="time-label">{formatTime(SNIPPET_LENGTH)}</span>
-              </div>
-              
-              <div className="master-buttons">
-                <button className="master-btn play-all" onClick={playAllStems}>
-                  <PlayArrowIcon />
-                </button>
-                <button className="master-btn pause-all" onClick={pauseAllStems}>
-                  <PauseIcon />
-                </button>
-                <button className="master-btn stop-all" onClick={stopAllStems}>
-                  <ReplayIcon />
-                </button>
-              </div>
+          <div className="master-controls">
+            <div className="playback-slider-container">
+              <span className="time-label">{formatTime(currentPosition)}</span>
+              <Slider
+                value={currentPosition}
+                onChange={handleSliderChange}
+                min={0}
+                max={SNIPPET_LENGTH}
+                step={0.1}
+                aria-label="Playback position"
+                sx={{
+                  flex: 1,
+                  mx: 2,
+                  color: 'primary.main',
+                  '& .MuiSlider-thumb': {
+                    width: 16,
+                    height: 16,
+                  },
+                  '& .MuiSlider-track': {
+                    height: 4,
+                  },
+                  '& .MuiSlider-rail': {
+                    height: 4,
+                    opacity: 0.3,
+                  },
+                }}
+              />
+              <span className="time-label">{formatTime(SNIPPET_LENGTH)}</span>
+            </div>
+            
+            <div className="master-buttons">
+              <button className="master-btn play-all" onClick={playAllStems}>
+                <PlayArrowIcon />
+              </button>
+              <button className="master-btn pause-all" onClick={pauseAllStems}>
+                <PauseIcon />
+              </button>
+              <button className="master-btn stop-all" onClick={stopAllStems}>
+                <ReplayIcon />
+              </button>
             </div>
           </div>
 
-          <div className="right-pane">
-            <div className="tracks-section">
-              {stemTracks.length === 0 ? (
-                <p className="empty">Loading instrumental stems...</p>
-              ) : (
-                <div className="tracks-list">
-                  {stemTracks.slice(3, 6).map((track, index) => {
-                    const actualIndex = index + 3;
-                    return (
-                      <div key={track.key} className="track-item">
-                        <div className="track-name-header">
-                          <span className="track-name">{track.label}</span>
-                          <IconButton
-                            onClick={() => toggleVolumeControl(actualIndex)}
-                            size="small"
-                            sx={{
-                              color: 'primary.main',
-                              marginLeft: '8px',
-                              '&:hover': {
-                                backgroundColor: 'rgba(103, 80, 164, 0.1)',
-                              },
-                            }}
-                            aria-label={`Toggle ${track.label} volume control`}
-                          >
-                            {stemVolumes[actualIndex] === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
-                          </IconButton>
-                          {volumeControlsVisible[actualIndex] && (
-                            <>
-                              <Slider
-                                orientation="horizontal"
-                                value={stemVolumes[actualIndex] !== undefined ? stemVolumes[actualIndex] : 0}
-                                onChange={handleVolumeChange(actualIndex)}
-                                min={0}
-                                max={200}
-                                step={1}
-                                aria-label={`${track.label} volume`}
-                                sx={{
-                                  flex: 1,
-                                  marginLeft: '15px',
-                                  marginRight: '10px',
-                                  color: 'primary.main',
-                                  '& .MuiSlider-thumb': {
-                                    width: 14,
-                                    height: 14,
-                                  },
-                                  '& .MuiSlider-track': {
-                                    height: 3,
-                                  },
-                                  '& .MuiSlider-rail': {
-                                    height: 3,
-                                    opacity: 0.3,
-                                  },
-                                }}
-                              />
-                              <span className="volume-value">{stemVolumes[actualIndex] !== undefined ? stemVolumes[actualIndex] : 0}%</span>
-                            </>
-                          )}
-                        </div>
-                        <div className="track-content">
-                          <div 
-                            ref={(el) => {
-                              waveformContainerRefs.current[actualIndex] = el;
-                            }}
-                            className="waveform-container"
-                          />
-                        </div>
-                        <audio
-                          ref={(el) => {
-                            stemAudioRefs.current[actualIndex] = el;
-                          }}
-                          src={track.url}
-                          crossOrigin="anonymous"
-                          onEnded={() => handleStemTrackEnded(actualIndex)}
-                          onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [actualIndex]: true }))}
-                          onPause={() => setStemPlayingStates((prev) => ({ ...prev, [actualIndex]: false }))}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="guess-section">
-              <div className="guess-controls">
-                <FormControl fullWidth variant="outlined" disabled={!randomSong}>
-                  <InputLabel id="song-select-label" sx={{ color: '#6750A4' }}>Select a song</InputLabel>
-                  <Select
-                    labelId="song-select-label"
-                    value={guessedSongId}
-                    onChange={(e) => setGuessedSongId(e.target.value)}
-                    label="Select a song"
-                    sx={{
-                      backgroundColor: 'white',
-                      borderRadius: 2,
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#6750A4',
-                      },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#6750A4',
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: '#6750A4',
-                      },
-                    }}
-                  >
-                    <MenuItem value="">
-                      <em>Select a song...</em>
-                    </MenuItem>
-                    {songs.map((song) => (
-                      <MenuItem key={song.id} value={song.id}>
-                        {song.artists ? `${song.name} - ${song.artists}` : song.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <button 
-                  className="submit-guess-btn"
-                  onClick={handleSubmitGuess}
-                  disabled={!guessedSongId || !randomSong}
+          <div className="guess-section">
+            <div className="guess-controls">
+              <FormControl fullWidth variant="outlined" disabled={!randomSong}>
+                <InputLabel id="song-select-label" sx={{ color: '#6750A4' }}>Select a song</InputLabel>
+                <Select
+                  labelId="song-select-label"
+                  value={guessedSongId}
+                  onChange={(e) => setGuessedSongId(e.target.value)}
+                  label="Select a song"
+                  sx={{
+                    backgroundColor: 'white',
+                    borderRadius: 2,
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#6750A4',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#6750A4',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#6750A4',
+                    },
+                  }}
                 >
-                  Submit Guess
-                </button>
-              </div>
+                  <MenuItem value="">
+                    <em>Select a song...</em>
+                  </MenuItem>
+                  {songs.map((song) => (
+                    <MenuItem key={song.id} value={song.id}>
+                      {song.artists ? `${song.name} - ${song.artists}` : song.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <button 
+                className="submit-guess-btn"
+                onClick={handleSubmitGuess}
+                disabled={!guessedSongId || !randomSong}
+              >
+                Submit Guess
+              </button>
             </div>
           </div>
         </div>
