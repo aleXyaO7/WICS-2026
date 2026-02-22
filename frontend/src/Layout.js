@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Box, IconButton, Menu, MenuItem, Typography } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -42,6 +42,50 @@ function Layout({ children }) {
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ minHeight: '100vh', width: '100%', position: 'relative' }}>
+        {!user && !hideUserMenu && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 2,
+              backgroundColor: 'white',
+              padding: '8px 16px',
+              borderRadius: '24px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            <Typography
+              component={Link}
+              to="/login"
+              variant="body2"
+              sx={{
+                color: '#6750A4',
+                fontWeight: 600,
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Login
+            </Typography>
+            <Typography
+              component={Link}
+              to="/signup"
+              variant="body2"
+              sx={{
+                color: '#6750A4',
+                fontWeight: 600,
+                textDecoration: 'none',
+                '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              Sign Up
+            </Typography>
+          </Box>
+        )}
         {user && !hideUserMenu && (
           <Box
             onClick={handleUserMenuClick}
