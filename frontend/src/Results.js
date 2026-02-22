@@ -11,7 +11,8 @@ function Results() {
   const [similarityData, setSimilarityData] = useState(null);
   const [error, setError] = useState(null);
   
-  const { actualSongId, guessedSongId } = location.state || {};
+  // Get data passed via navigation state
+  const { actualSongId, guessedSongId, clipStartTime } = location.state || {};
 
   useEffect(() => {
     if (!actualSongId || !guessedSongId) {
@@ -28,7 +29,8 @@ function Results() {
       setLoading(true);
       const response = await axios.post(`${API_URL}/guess`, {
         actual_song_id: actualSongId,
-        guessed_song_id: guessedSongId
+        guessed_song_id: guessedSongId,
+        clip_start_time: clipStartTime || 0
       });
       setSimilarityData(response.data);
     } catch (err) {

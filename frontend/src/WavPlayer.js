@@ -543,11 +543,11 @@ function WavPlayer() {
       return;
     }
 
-    // Navigate to results page with song IDs
     navigate('/results', {
       state: {
         actualSongId: randomSong.id,
-        guessedSongId: guessedSongId
+        guessedSongId: guessedSongId,
+        clipStartTime: randomSong.clip_start_time || 0
       }
     });
   };

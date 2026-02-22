@@ -15,6 +15,21 @@ try:
 except ImportError:
     pass
 
+# Load songmap for similarity scoring
+spotify_to_songname = {}
+songname_to_spotify = {}
+try:
+    songmap_path = os.path.join(os.path.dirname(__file__), 'songmap.txt')
+    with open(songmap_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if line and ',' in line:
+                song_name, spotify_id = line.split(',', 1)
+                spotify_to_songname[spotify_id] = song_name
+                songname_to_spotify[song_name] = spotify_id
+except Exception as e:
+    print(f"Warning: Could not load songmap.txt: {e}")
+
 SUPABASE_URL = os.environ.get('SUPABASE_URL')
 SUPABASE_KEY = os.environ.get('SUPABASE_SERVICE_ROLE_KEY') or os.environ.get('SUPABASE_KEY')
 supabase_client = None
@@ -204,6 +219,7 @@ def submit_guess():
         data = request.get_json()
         actual_song_id = data.get('actual_song_id')
         guessed_song_id = data.get('guessed_song_id')
+        clip_start_time = data.get('clip_start_time', 0)
         
         if not actual_song_id or not guessed_song_id:
             return jsonify({'error': 'Missing actual_song_id or guessed_song_id'}), 400
@@ -215,38 +231,80 @@ def submit_guess():
         if not actual_song_result.data or not guessed_song_result.data:
             return jsonify({'error': 'One or both songs not found'}), 404
         
-        actual_song = _row_to_song(actual_song_result.data[0])
-        guessed_song = _row_to_song(guessed_song_result.data[0])
+        actual_song_row = actual_song_result.data[0]
+        guessed_song_row = guessed_song_result.data[0]
+        actual_song = _row_to_song(actual_song_row)
+        guessed_song = _row_to_song(guessed_song_row)
         
-        # Generate dummy similarity score
-        import random
         is_correct = actual_song_id == guessed_song_id
         
-        if is_correct:
-            similarity_score = 100
-            message = "Perfect match! You guessed correctly!"
-        else:
-            similarity_score = random.randint(20, 80)
-            if similarity_score >= 70:
-                message = "Very close! The songs are quite similar."
-            elif similarity_score >= 50:
+        # Get spotify IDs and convert to songmap format
+        actual_spotify_id = actual_song_row.get('spotify_id')
+        guessed_spotify_id = guessed_song_row.get('spotify_id')
+        
+        if not actual_spotify_id or not guessed_spotify_id:
+            return jsonify({'error': 'Songs missing spotify_id field'}), 400
+        
+        # Convert spotify IDs to songmap format (e.g., 'blinding-lights')
+        actual_song_name = spotify_to_songname.get(actual_spotify_id)
+        guessed_song_name = spotify_to_songname.get(guessed_spotify_id)
+        
+        if not actual_song_name or not guessed_song_name:
+            return jsonify({
+                'error': f'Song not found in songmap: actual={actual_spotify_id}, guessed={guessed_spotify_id}'
+            }), 404
+        
+        # Calculate real similarity using the similarity_score module
+        try:
+            from similarity_score import similarity_score as calc_similarity, _filter_metadata_diff, _embedding_score
+            
+            # Get the overall similarity score (0 to 1)
+            overall_score = calc_similarity(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
+            similarity_percentage = int(overall_score * 100)
+            
+            # Get detailed breakdown
+            metadata_breakdown = _filter_metadata_diff(actual_song_name, guessed_song_name)
+            
+            # Get embedding similarity
+            embedding_score = _embedding_score(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
+            
+            # Format breakdown as percentages
+            breakdown = {
+                'Audio Similarity': int(embedding_score * 100),
+                'Key Match': int(metadata_breakdown['key'] * 100),
+                'Tempo Match': int(metadata_breakdown['tempo'] * 100),
+                'Energy Match': int(metadata_breakdown['energy'] * 100),
+                'Mood Match': int(metadata_breakdown['mood'] * 100),
+                'Loudness Match': int(metadata_breakdown['loud'] * 100),
+            }
+            
+            # Generate message based on score
+            if is_correct:
+                message = "Perfect match! You guessed correctly!"
+            elif similarity_percentage >= 80:
+                message = "Incredible! These songs are extremely similar!"
+            elif similarity_percentage >= 70:
+                message = "Very close! The songs share many characteristics."
+            elif similarity_percentage >= 50:
                 message = "Somewhat similar, but not quite right."
             else:
-                message = "Not very similar. Try again!"
-        
-        # Generate dummy breakdown by instrument
-        breakdown = {
-            'drums': random.randint(30, 95) if not is_correct else 100,
-            'bass': random.randint(30, 95) if not is_correct else 100,
-            'piano': random.randint(30, 95) if not is_correct else 100,
-            'guitar': random.randint(30, 95) if not is_correct else 100,
-            'vocals': random.randint(30, 95) if not is_correct else 100,
-        }
+                message = "Not very similar. Keep trying!"
+            
+        except Exception as similarity_error:
+            print(f"Error calculating similarity: {similarity_error}")
+            # Fallback to simple comparison if similarity calculation fails
+            if is_correct:
+                similarity_percentage = 100
+                message = "Perfect match! You guessed correctly!"
+            else:
+                similarity_percentage = 50
+                message = "Unable to calculate detailed similarity."
+            breakdown = {}
         
         return jsonify({
             'actual_song': actual_song,
             'guessed_song': guessed_song,
-            'similarity_score': similarity_score,
+            'similarity_score': similarity_percentage,
             'message': message,
             'breakdown': breakdown,
             'is_correct': is_correct
