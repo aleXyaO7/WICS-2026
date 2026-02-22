@@ -24,6 +24,17 @@ def get_audio_features(ids):
     response.raise_for_status()
     return response.json()
 
+
+def get_metadata_for_track(spotify_id: str):
+    """
+    Get audio-features metadata for a single track by Spotify ID.
+    Returns a dict with AUDIO_FEATURE_KEYS only, or None if not found.
+    """
+    data = get_audio_features([spotify_id])
+    for item in data.get("content", []):
+        return _audio_features_only(item)
+    return None
+
 def main():
     if len(sys.argv) < 2:
         print("Usage: python recco_beats.py <ids_file.txt>", file=sys.stderr)

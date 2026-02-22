@@ -88,3 +88,54 @@ def set_elo_rating(user_id: str, elo_rating: int):
     if not rows:
         return None
     return rows[0].get("elo_rating")
+
+
+def insert_song(
+    *,
+    spotify_id: str | None = None,
+    title: str,
+    artists: str,
+    year: int | None = None,
+    metadata: dict | None = None,
+    url_original: str,
+):
+    """
+    Insert a row into the songs table.
+
+    Parameters
+    ----------
+    spotify_id : str | None
+        Spotify track ID (optional).
+    title : str
+        Song title.
+    artists : str
+        Artist name(s); can be comma-separated.
+    year : int | None
+        Release year (optional).
+    metadata : dict | None
+        JSON metadata (e.g. audio features from ReccoBeats).
+    url_original : str
+        URL of the original audio (required).
+
+    Returns
+    -------
+    dict | None
+        The inserted row, or None on failure.
+    """
+    client = _client()
+    row = {
+        "title": title,
+        "artists": artists,
+        "url_original": url_original,
+    }
+    if spotify_id is not None:
+        row["spotify_id"] = spotify_id
+    if year is not None:
+        row["year"] = year
+    if metadata is not None:
+        row["metadata"] = metadata
+    r = client.table("songs").insert(row).execute()
+    rows = r.data or []
+    if not rows:
+        return None
+    return rows[0]

@@ -4,6 +4,7 @@ flask>=3.0.0
 flask-cors>=4.0.0
 supabase>=2.0.0
 python-dotenv>=1.0.0
-pydub
+spotipy>=2.23.0
+pydub>=0.25.0
 audioop-lts>=0.2.0; python_version>='3.13'
 boto3>=1.28.0
