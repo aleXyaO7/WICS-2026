@@ -7,8 +7,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from dotenv import load_dotenv
 load_dotenv()
 
-from supabase_functions import get_metadata_by_spotify_id
-
 sampling_rate=16000
 
 def _get_audio_array(file_id):
