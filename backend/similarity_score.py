@@ -79,7 +79,7 @@ def _filter_metadata_diff(orig_id, guess_id):
         'tempo' : 1 - abs(orig_metadata['tempo'] - guess_metadata['tempo']) / 150,
         'energy' : 1 - abs(orig_metadata['energy'] - guess_metadata['energy']),
         'mood' : 1 - abs(orig_metadata['valence'] + orig_metadata['danceability'] - guess_metadata['valence'] - guess_metadata['danceability']),
-        'loud' : 1 - abs(orig_metadata['loudness'] - guess_metadata['loudness']),
+        'loud' : 1 - abs(orig_metadata['loudness'] - guess_metadata['loudness']) / 10,
     }
     return results, orig_metadata, guess_metadata
 
