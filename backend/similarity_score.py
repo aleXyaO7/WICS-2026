@@ -48,7 +48,7 @@ def _embedding_score(orig_id, guess_id, start_second, duration):
 
     guess_audio_array_all = _get_audio_array(guess_id)
     guess_audio_array = []
-    guess_padding = 5
+    guess_padding = 60
     pointer = 0
     while True:
         if pointer + duration * sampling_rate > len(guess_audio_array_all):
@@ -83,7 +83,7 @@ def _filter_metadata_diff(orig_id, guess_id):
     return results, orig_metadata, guess_metadata
 
 # Returns a float between 0 and 1 denoting similarity
-def similarity_score(orig_id, guess_id, start_second, duration=15):
+def calculate_similarity(orig_id, guess_id, start_second, duration=15):
     max_sim = _embedding_score(orig_id, guess_id, start_second, duration)
     metadata_diff, orig_metadata, guess_metadata = _filter_metadata_diff(orig_id, guess_id)
 
@@ -98,4 +98,4 @@ def similarity_score(orig_id, guess_id, start_second, duration=15):
     weights = np.array([0.4, 0.2, 0.15, 0.1, 0.1, 0.05])
     return np.sum(characteristics * weights), orig_metadata, guess_metadata
 
-# Example usage: similarity_score('blinding-lights', 'see-you-again', 10, 15)
+# Example usage: calculate_similarity('blinding-lights', 'see-you-again', 10, 15)
