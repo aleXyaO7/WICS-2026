@@ -870,7 +870,7 @@ function WavPlayer() {
                     </MenuItem>
                     {songs.map((song) => (
                       <MenuItem key={song.id} value={song.id}>
-                        {song.name}
+                        {song.artists ? `${song.name} - ${song.artists}` : song.name}
                       </MenuItem>
                     ))}
                   </Select>
