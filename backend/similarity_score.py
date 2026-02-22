@@ -38,6 +38,7 @@ def _get_embedding(processor, model, audio_array):
 
 # Calculates the maximum similarity between first audio clip and various windows in the second song
 def _embedding_score(orig_id, guess_id, start_second, duration):
+    if orig_id == guess_id: return 1
     processor = Wav2Vec2Processor.from_pretrained("facebook/data2vec-audio-base-960h")
     model = Data2VecAudioModel.from_pretrained("m-a-p/music2vec-v1")
 
