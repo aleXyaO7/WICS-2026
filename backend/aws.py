@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 from botocore.client import Config
 
 if not os.environ.get("GITHUB_ACTIONS") and not os.environ.get("DYNO"):
-    load_dotenv()   # .env in cwd
-    load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))  # project root
+    load_dotenv()
+    load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
     load_dotenv("env")
 
 def upload_file(filename, bucket, object_name=None):

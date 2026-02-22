@@ -69,22 +69,22 @@ function Layout({ children }) {
               to="/"
               style={{
                 padding: '10px 20px',
-                background: '#f8f9fa',
-                color: '#333',
+                background: 'transparent',
+                color: 'white',
                 textDecoration: 'none',
                 borderRadius: '8px',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                transition: 'background 0.2s, transform 0.2s',
+                transition: 'opacity 0.2s, transform 0.2s',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#e9ecef';
+                e.currentTarget.style.opacity = '0.85';
                 e.currentTarget.style.transform = 'translateY(-1px)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = '#f8f9fa';
+                e.currentTarget.style.opacity = '1';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
@@ -93,12 +93,12 @@ function Layout({ children }) {
             <IconButton
               onClick={handleOpenRules}
               sx={{
-                background: '#f8f9fa',
-                color: '#333',
+                background: 'transparent',
+                color: 'white',
                 borderRadius: '8px',
-                transition: 'background 0.2s, transform 0.2s',
+                transition: 'opacity 0.2s, transform 0.2s',
                 '&:hover': {
-                  background: '#e9ecef',
+                  opacity: 0.85,
                   transform: 'translateY(-1px)',
                 },
               }}

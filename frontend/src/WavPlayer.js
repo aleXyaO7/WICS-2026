@@ -151,6 +151,7 @@ function WavPlayer() {
     });
     setStemVolumes(initialVolumes);
     setStemsUnmuted({}); // Reset unmuted tracking
+    setVolumeControlsVisible({}); // Hide volume sliders when song changes
   }, [randomSong]);
 
   useEffect(() => {
@@ -217,9 +218,10 @@ function WavPlayer() {
           try {
             const wavesurfer = WaveSurfer.create({
               container: container,
-              waveColor: '#4a9eff',
-              progressColor: '#1e3a8a',
-              cursorColor: '#1e3a8a',
+              waveColor: '#ffffff',
+              progressColor: '#6b7280',
+              cursorColor: '#6b7280',
+              backgroundColor: '#000000',
               barWidth: 2,
               barRadius: 3,
               cursorWidth: 2,
@@ -333,7 +335,10 @@ function WavPlayer() {
   const fetchSongs = async () => {
     try {
       const response = await axios.get(`${API_URL}/songs`);
-      setSongs(response.data);
+      const sorted = [...response.data].sort((a, b) =>
+        (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })
+      );
+      setSongs(sorted);
     } catch (error) {
       console.error('Error fetching songs:', error);
     }
@@ -509,6 +514,7 @@ function WavPlayer() {
     });
     setPlayingAllStems(false);
     setCurrentPosition(0);
+    setVolumeControlsVisible({});
   };
 
   const pauseAllStems = () => {
@@ -681,10 +687,10 @@ function WavPlayer() {
                         onClick={() => toggleVolumeControl(index)}
                         size="small"
                         sx={{
-                          color: 'primary.main',
+                          color: 'white',
                           marginLeft: '8px',
                           '&:hover': {
-                            backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
                           },
                         }}
                         aria-label={`Toggle ${track.label} volume control`}
@@ -705,18 +711,14 @@ function WavPlayer() {
                               width: 80,
                               marginLeft: '8px',
                               marginRight: '6px',
-                              color: 'primary.main',
+                              color: 'white',
                               '& .MuiSlider-thumb': {
                                 width: 14,
                                 height: 14,
+                                backgroundColor: 'white',
                               },
-                              '& .MuiSlider-track': {
-                                height: 3,
-                              },
-                              '& .MuiSlider-rail': {
-                                height: 3,
-                                opacity: 0.3,
-                              },
+                              '& .MuiSlider-track': { height: 3 },
+                              '& .MuiSlider-rail': { height: 3, opacity: 0.5 },
                             }}
                           />
                           <span className="volume-value">{stemVolumes[index] !== undefined ? stemVolumes[index] : 0}%</span>
@@ -760,17 +762,19 @@ function WavPlayer() {
                 sx={{
                   flex: 1,
                   mx: 2,
-                  color: 'primary.main',
+                  color: '#ffffff',
                   '& .MuiSlider-thumb': {
                     width: 16,
                     height: 16,
+                    backgroundColor: 'white',
                   },
                   '& .MuiSlider-track': {
                     height: 4,
+                    backgroundColor: '#6b7280',
                   },
                   '& .MuiSlider-rail': {
                     height: 4,
-                    opacity: 0.3,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
                   },
                 }}
               />
@@ -792,24 +796,39 @@ function WavPlayer() {
 
           <div className="guess-section">
             <div className="guess-controls">
-              <FormControl fullWidth variant="outlined" disabled={!randomSong}>
-                <InputLabel id="song-select-label" sx={{ color: '#6750A4' }}>Select a song</InputLabel>
+              <FormControl variant="outlined" disabled={!randomSong} sx={{ flex: 1, minWidth: 0, maxWidth: 400 }}>
+                <InputLabel id="song-select-label" sx={{ color: 'white', '&.Mui-focused': { color: 'white' }, '&.MuiInputLabel-shrink': { color: 'white' } }}>Select a song</InputLabel>
                 <Select
                   labelId="song-select-label"
                   value={guessedSongId}
                   onChange={(e) => setGuessedSongId(e.target.value)}
                   label="Select a song"
                   sx={{
-                    backgroundColor: 'white',
+                    color: 'white',
                     borderRadius: 2,
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#6750A4',
+                      borderColor: 'rgba(255, 255, 255, 0.3)',
                     },
                     '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#6750A4',
+                      borderColor: 'rgba(255, 255, 255, 0.5)',
                     },
                     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#6750A4',
+                      borderColor: 'rgba(255, 255, 255, 0.7)',
+                    },
+                    '& .MuiSvgIcon-root': { color: 'white' },
+                    '& .MuiSelect-select': { color: 'white' },
+                    '& .MuiInputBase-input': { color: 'white' },
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        backgroundColor: '#1a1a1a',
+                        color: 'white',
+                        '& .MuiMenuItem-root': { color: 'white' },
+                        '& .MuiMenuItem-root.Mui-selected': { backgroundColor: 'rgba(255, 255, 255, 0.1)' },
+                        '& .MuiMenuItem-root.Mui-selected:hover': { backgroundColor: 'rgba(255, 255, 255, 0.15)' },
+                      },
                     },
                   }}
                 >

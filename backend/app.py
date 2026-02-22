@@ -9,14 +9,12 @@ CORS(app)
 
 DOWNLOADS_DIR = os.path.join(os.path.dirname(__file__), 'downloads')
 
-# Supabase (optional): set SUPABASE_URL and SUPABASE_KEY in .env to use DB
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except ImportError:
     pass
 
-# Load songmap for similarity scoring
 spotify_to_songname = {}
 songname_to_spotify = {}
 try:
@@ -41,13 +39,12 @@ if SUPABASE_URL and SUPABASE_KEY:
     except Exception:
         supabase_client = None
 
-
 def _row_to_song(row):
     """Map Supabase songs row to API shape (id, name, filename + URLs for frontend)."""
     return {
         'id': str(row['id']),
         'name': row.get('title') or '',
-        'filename': row.get('url_original'),  # frontend can use url_original for play when from Supabase
+        'filename': row.get('url_original'),
         'artists': row.get('artists'),
         'year': row.get('year'),
         'metadata': row.get('metadata'),
@@ -147,11 +144,10 @@ def _spotify_ids_from_play_file():
             line = line.strip()
             if not line:
                 continue
-            part = line.split(',')[-1].strip()  # support "name,id" or just "id"
+            part = line.split(',')[-1].strip()
             if part:
                 ids.append(part)
     return ids
-
 
 @app.route('/api/songs/random', methods=['GET'])
 def get_random_song():
@@ -225,7 +221,6 @@ def submit_guess():
         if not actual_song_id or not guessed_song_id:
             return jsonify({'error': 'Missing actual_song_id or guessed_song_id'}), 400
         
-        # Fetch both songs from the database
         actual_song_result = supabase_client.table('songs').select('*').eq('id', actual_song_id).execute()
         guessed_song_result = supabase_client.table('songs').select('*').eq('id', guessed_song_id).execute()
         
@@ -239,14 +234,12 @@ def submit_guess():
         
         is_correct = actual_song_id == guessed_song_id
         
-        # Get spotify IDs and convert to songmap format
         actual_spotify_id = actual_song_row.get('spotify_id')
         guessed_spotify_id = guessed_song_row.get('spotify_id')
         
         if not actual_spotify_id or not guessed_spotify_id:
             return jsonify({'error': 'Songs missing spotify_id field'}), 400
         
-        # Convert spotify IDs to songmap format (e.g., 'blinding-lights')
         actual_song_name = spotify_to_songname.get(actual_spotify_id)
         guessed_song_name = spotify_to_songname.get(guessed_spotify_id)
 
@@ -258,7 +251,6 @@ def submit_guess():
                 'error': f'Song not found in songmap: actual={actual_spotify_id}, guessed={guessed_spotify_id}'
             }), 404
         
-        # Calculate real similarity using the similarity_score module
         try:
             overall_score, actual_metadata, guessed_metadata, metadata_breakdown = calculate_similarity(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
             similarity_percentage = int(overall_score * 100)
@@ -290,7 +282,6 @@ def submit_guess():
                 'loudness': round(guessed_metadata.get('loudness', 0), 2),
             }
             
-            # Generate message based on score
             if is_correct:
                 message = "Perfect match! You guessed correctly!"
             elif similarity_percentage >= 80:
@@ -306,7 +297,6 @@ def submit_guess():
             print(f"Error calculating similarity: {similarity_error}")
             import traceback
             traceback.print_exc()
-            # Fallback to simple comparison if similarity calculation fails
             if is_correct:
                 similarity_percentage = 100
                 message = "Perfect match! You guessed correctly!"
@@ -351,7 +341,6 @@ def signup():
         email = data.get('email', '').strip()
         password = data.get('password', '')
         
-        # Validation
         if not username or not email or not password:
             return jsonify({'error': 'Username, email, and password are required'}), 400
         
@@ -361,25 +350,21 @@ def signup():
         if len(password) < 6:
             return jsonify({'error': 'Password must be at least 6 characters'}), 400
         
-        # Check if username already exists
         existing_user = supabase_client.table('users').select('id').eq('username', username).execute()
         if existing_user.data:
             return jsonify({'error': 'Username already taken'}), 409
         
-        # Check if email already exists
         existing_email = supabase_client.table('users').select('id').eq('email', email).execute()
         if existing_email.data:
             return jsonify({'error': 'Email already registered'}), 409
         
-        # Hash password
         password_hash = generate_password_hash(password)
         
-        # Create user in database
         result = supabase_client.table('users').insert({
             'username': username,
             'email': email,
             'password_hash': password_hash,
-            'elo_rating': 1200  # Default ELO rating
+            'elo_rating': 1200
         }).execute()
         
         if result.data:
@@ -414,7 +399,6 @@ def login():
         if not username or not password:
             return jsonify({'error': 'Username and password are required'}), 400
         
-        # Get user from database
         result = supabase_client.table('users').select('*').eq('username', username).execute()
         
         if not result.data:
@@ -422,11 +406,9 @@ def login():
         
         user = result.data[0]
         
-        # Check password
         if not check_password_hash(user['password_hash'], password):
             return jsonify({'error': 'Invalid username or password'}), 401
         
-        # Return user data (without password hash)
         return jsonify({
             'message': 'Login successful',
             'user': {

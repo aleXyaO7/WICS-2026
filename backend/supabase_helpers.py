@@ -24,19 +24,6 @@ def _client():
 
 
 def get_metadata_by_spotify_id(spotify_id: str):
-    """
-    Query the songs table by spotify_id and return that row's metadata as JSON.
-
-    Parameters
-    ----------
-    spotify_id : str
-        Spotify track ID (e.g. "0VjIjW4GlUZAMYd2vXMi3b").
-
-    Returns
-    -------
-    dict | None
-        The `metadata` column (JSON) for the matching row, or None if not found.
-    """
     client = _client()
     r = client.table("songs").select("metadata").eq("spotify_id", spotify_id).execute()
     rows = r.data or []
@@ -46,19 +33,6 @@ def get_metadata_by_spotify_id(spotify_id: str):
 
 
 def get_elo_rating(user_id: str):
-    """
-    Get elo_rating for a user by their uuid.
-
-    Parameters
-    ----------
-    user_id : str
-        User uuid (primary key of public.users).
-
-    Returns
-    -------
-    int | None
-        The user's elo_rating, or None if not found.
-    """
     client = _client()
     r = client.table("users").select("elo_rating").eq("id", user_id).execute()
     rows = r.data or []
@@ -68,21 +42,6 @@ def get_elo_rating(user_id: str):
 
 
 def set_elo_rating(user_id: str, elo_rating: int):
-    """
-    Set elo_rating for a user by their uuid. updated_at is set automatically by trigger.
-
-    Parameters
-    ----------
-    user_id : str
-        User uuid (primary key of public.users).
-    elo_rating : int
-        New ELO rating (typically 1200 default).
-
-    Returns
-    -------
-    int | None
-        The updated elo_rating, or None if no row was updated.
-    """
     client = _client()
     r = client.table("users").update({"elo_rating": elo_rating}).eq("id", user_id).execute()
     rows = r.data or []
@@ -100,29 +59,6 @@ def insert_song(
     metadata: dict | None = None,
     url_original: str,
 ):
-    """
-    Insert a row into the songs table.
-
-    Parameters
-    ----------
-    spotify_id : str | None
-        Spotify track ID (optional).
-    title : str
-        Song title.
-    artists : str
-        Artist name(s); can be comma-separated.
-    year : int | None
-        Release year (optional).
-    metadata : dict | None
-        JSON metadata (e.g. audio features from ReccoBeats).
-    url_original : str
-        URL of the original audio (required).
-
-    Returns
-    -------
-    dict | None
-        The inserted row, or None on failure.
-    """
     client = _client()
     row = {
         "title": title,
@@ -143,26 +79,6 @@ def insert_song(
 
 
 def load_songs_from_txt(txt_path: str, bucket: str | None = None):
-    """
-    Read a txt file of comma-separated lines: song_name, artist, year, spotify_id.
-    For each line: download the song via download_song (YouTube -> WAV), upload to S3,
-    then insert_song with url_original = the S3 WAV URL and metadata from ReccoBeats.
-
-    Blank lines and lines that don't parse to 4 fields are skipped. If download/upload
-    fails for a line, that line is skipped.
-
-    Parameters
-    ----------
-    txt_path : str
-        Path to the file (e.g. backend/downloads/songs.txt).
-    bucket : str | None
-        S3 bucket name. If None, uses env AWS_S3_BUCKET or S3_BUCKET.
-
-    Returns
-    -------
-    list[dict]
-        List of inserted row dicts (one per successful insert). Failed lines are skipped.
-    """
     from download_song import download_and_upload_to_s3
     from recco_beats import get_metadata_for_track
 
