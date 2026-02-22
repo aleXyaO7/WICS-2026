@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import WaveSurfer from 'wavesurfer.js';
 import './WavPlayer.css';
 import './App.css';
 
@@ -70,6 +71,10 @@ function WavPlayer() {
   const gainNodesRef = useRef([]);
   const sourceNodesRef = useRef([]);
   const initialFetchDone = useRef(false);
+  
+  // Wavesurfer instances for waveform visualization
+  const wavesurferRefs = useRef([]);
+  const waveformContainerRefs = useRef([]);
 
   useEffect(() => {
     if (initialFetchDone.current) return;
@@ -154,6 +159,100 @@ function WavPlayer() {
     
     return () => clearTimeout(timer);
   }, [stemTracks]);
+
+  useEffect(() => {
+    if (stemTracks.length === 0) return;
+    
+    let isMounted = true;
+    const timer = setTimeout(() => {
+      if (!isMounted) return;
+      
+      stemTracks.forEach((track, index) => {
+        const container = waveformContainerRefs.current[index];
+        const audio = stemAudioRefs.current[index];
+        
+        if (container && !wavesurferRefs.current[index]) {
+          try {
+            const wavesurfer = WaveSurfer.create({
+              container: container,
+              waveColor: '#4a9eff',
+              progressColor: '#1e3a8a',
+              cursorColor: '#1e3a8a',
+              barWidth: 2,
+              barRadius: 3,
+              cursorWidth: 2,
+              height: 80,
+              barGap: 2,
+              responsive: true,
+              normalize: true,
+              mediaControls: false,
+              interact: true,
+            });
+            
+            wavesurfer.load(track.url).catch((error) => {
+              if (error.name !== 'AbortError') {
+                console.error('Error loading waveform for stem', index, error);
+              }
+            });
+            
+            wavesurfer.on('interaction', () => {
+              const currentTime = wavesurfer.getCurrentTime();
+              if (audio) {
+                audio.currentTime = currentTime;
+                const relativePosition = currentTime - (stemClipStartTime.current || 0);
+                setCurrentPosition(Math.max(0, Math.min(SNIPPET_LENGTH, relativePosition)));
+              }
+            });
+            
+            wavesurferRefs.current[index] = wavesurfer;
+          } catch (error) {
+            console.error('Error creating WaveSurfer instance for stem', index, error);
+          }
+        }
+      });
+    }, 300);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      if (wavesurferRefs.current.length > stemTracks.length) {
+        wavesurferRefs.current.forEach((ws) => {
+          if (ws) ws.destroy();
+        });
+        wavesurferRefs.current = [];
+      }
+    };
+  }, [stemTracks]);
+
+  useEffect(() => {
+    const updateWaveforms = () => {
+      stemAudioRefs.current.forEach((audio, index) => {
+        if (audio && wavesurferRefs.current[index]) {
+          const wavesurfer = wavesurferRefs.current[index];
+          const duration = wavesurfer.getDuration();
+          if (duration > 0) {
+            const progress = audio.currentTime / duration;
+            wavesurfer.seekTo(progress);
+          }
+        }
+      });
+    };
+
+    let animationFrameId;
+    if (playingAllStems || Object.values(stemPlayingStates).some(state => state)) {
+      const animate = () => {
+        updateWaveforms();
+        animationFrameId = requestAnimationFrame(animate);
+      };
+      animate();
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [playingAllStems, stemPlayingStates]);
 
   useEffect(() => {
     gainNodesRef.current.forEach((gainNode, index) => {
@@ -272,7 +371,6 @@ function WavPlayer() {
     const audio = stemAudioRefs.current[index];
     if (!audio) return;
 
-    // Resume AudioContext if suspended (required by browsers)
     if (audioContextRef.current) {
       if (audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume().then(() => {
@@ -281,7 +379,6 @@ function WavPlayer() {
       }
     }
 
-    // If at the end, restart from beginning
     let playPosition = currentPosition;
     if (currentPosition >= SNIPPET_LENGTH - 0.1) {
       playPosition = 0;
@@ -297,7 +394,6 @@ function WavPlayer() {
       clearTimeout(stemSnippetTimers.current[index]);
     }
     
-    // Calculate remaining time from current position to end
     const remainingTime = (SNIPPET_LENGTH - playPosition) * 1000;
     stemSnippetTimers.current[index] = setTimeout(() => {
       audio.pause();
@@ -330,7 +426,18 @@ function WavPlayer() {
     }
 
     audio.pause();
-    audio.currentTime = stemClipStartTime.current || 0;
+    const startTime = stemClipStartTime.current || 0;
+    audio.currentTime = startTime;
+    
+    const wavesurfer = wavesurferRefs.current[index];
+    if (wavesurfer) {
+      const duration = wavesurfer.getDuration();
+      if (duration > 0) {
+        const progress = startTime / duration;
+        wavesurfer.seekTo(progress);
+      }
+    }
+    
     setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
     setCurrentPosition(0);
   };
@@ -345,10 +452,21 @@ function WavPlayer() {
   };
 
   const stopAllStems = () => {
+    const startTime = stemClipStartTime.current || 0;
     stemAudioRefs.current.forEach((audio, index) => {
       if (audio) {
         audio.pause();
-        audio.currentTime = stemClipStartTime.current || 0;
+        audio.currentTime = startTime;
+        
+        const wavesurfer = wavesurferRefs.current[index];
+        if (wavesurfer) {
+          const duration = wavesurfer.getDuration();
+          if (duration > 0) {
+            const progress = startTime / duration;
+            wavesurfer.seekTo(progress);
+          }
+        }
+        
         setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
         if (stemSnippetTimers.current[index]) {
           clearTimeout(stemSnippetTimers.current[index]);
@@ -377,15 +495,22 @@ function WavPlayer() {
     const newPosition = parseFloat(e.target.value);
     setCurrentPosition(newPosition);
     
-    // Update all audio elements to the new position (both playing and paused)
     const absoluteTime = (stemClipStartTime.current || 0) + newPosition;
-    stemAudioRefs.current.forEach((audio) => {
+    stemAudioRefs.current.forEach((audio, index) => {
       if (audio) {
         audio.currentTime = absoluteTime;
+        
+        const wavesurfer = wavesurferRefs.current[index];
+        if (wavesurfer) {
+          const duration = wavesurfer.getDuration();
+          if (duration > 0) {
+            const progress = absoluteTime / duration;
+            wavesurfer.seekTo(progress);
+          }
+        }
       }
     });
     
-    // Update timers for any playing stems
     stemAudioRefs.current.forEach((audio, index) => {
       if (audio && !audio.paused && stemSnippetTimers.current[index]) {
         clearTimeout(stemSnippetTimers.current[index]);
@@ -565,6 +690,12 @@ function WavPlayer() {
                       <span className="volume-value">{stemVolumes[index] || 100}%</span>
                     </div>
                   </div>
+                  <div 
+                    ref={(el) => {
+                      waveformContainerRefs.current[index] = el;
+                    }}
+                    className="waveform-container"
+                  />
                   <div className="track-buttons">
                     <button
                       className={`track-btn ${stemPlayingStates[index] ? 'playing' : ''}`}
