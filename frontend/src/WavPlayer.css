@@ -2,23 +2,36 @@
   min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: white;
 }
 
 .wav-container {
-  background: white;
-  border-radius: 20px;
+  background: transparent;
+  border-radius: 0;
   padding: 40px;
-  max-width: 700px;
+  padding-top: 80px;
+  max-width: 1400px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: none;
   position: relative;
 }
 
+.header-row {
+  position: fixed;
+  top: 20px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 900;
+}
+
 .back-button {
-  display: inline-block;
+  position: absolute;
+  left: 20px;
   padding: 10px 20px;
   background: #f8f9fa;
   color: #333;
@@ -26,7 +39,6 @@
   border-radius: 8px;
   font-weight: 600;
   transition: all 0.3s;
-  margin-bottom: 20px;
   border: 2px solid #e9ecef;
 }
 
@@ -37,11 +49,10 @@
   transform: translateX(-5px);
 }
 
-h1 {
-  text-align: center;
+.wav-container h1 {
   color: #667eea;
-  margin-bottom: 30px;
   font-size: 2.5rem;
+  margin: 0;
 }
 
 h2 {
@@ -52,12 +63,39 @@ h2 {
   padding-bottom: 10px;
 }
 
+/* Two-Pane Layout */
+.two-pane-layout {
+  display: flex;
+  gap: 30px;
+  align-items: flex-start;
+}
+
+.left-pane {
+  flex: 1;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.right-pane {
+  flex: 1;
+  width: 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
 /* Master Controls */
 .master-controls {
-  margin-bottom: 40px;
+  margin-bottom: 0;
   padding: 25px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 140px;
 }
 
 .master-controls h2 {
@@ -74,51 +112,51 @@ h2 {
 }
 
 .master-btn {
-  padding: 15px 30px;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
+  padding: 15px;
+  border: 2px dashed rgba(255, 255, 255, 0.6);
+  border-radius: 50%;
+  font-size: 1.2rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
   color: white;
-  flex: 1;
-  min-width: 150px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .master-btn.play-all {
-  background: #28a745;
+  background: transparent;
 }
 
 .master-btn.play-all:hover {
-  background: #218838;
+  background: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
 }
 
 .master-btn.pause-all {
-  background: #ffc107;
+  background: transparent;
 }
 
 .master-btn.pause-all:hover {
-  background: #e0a800;
+  background: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(255, 193, 7, 0.4);
 }
 
 .master-btn.stop-all {
-  background: #dc3545;
+  background: transparent;
 }
 
 .master-btn.stop-all:hover {
-  background: #c82333;
+  background: rgba(255, 255, 255, 0.1);
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(220, 53, 69, 0.4);
 }
 
 /* Playback Slider */
 .playback-slider-container {
-  margin-top: 25px;
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
   gap: 15px;
@@ -199,7 +237,7 @@ h2 {
 
 /* Individual Tracks */
 .tracks-section {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .tracks-list {
@@ -215,7 +253,7 @@ h2 {
   background: #f8f9fa;
   border-radius: 10px;
   transition: all 0.3s;
-  gap: 12px;
+  gap: 8px;
 }
 
 .track-item:hover {
@@ -223,27 +261,25 @@ h2 {
   transform: translateX(5px);
 }
 
-.track-header {
+.track-name-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  margin-bottom: 8px;
   width: 100%;
 }
 
 .track-name {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 1.1rem;
   color: #333;
-  flex: 0 0 auto;
-  margin-right: 15px;
+  flex-shrink: 0;
 }
 
-.volume-control {
+.track-content {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
-  max-width: 300px;
+  position: relative;
 }
 
 .volume-icon {
@@ -284,7 +320,6 @@ h2 {
   background: #ffffff;
   border-radius: 8px;
   overflow: hidden;
-  margin: 10px 0;
   border: 1px solid #e5e7eb;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
 }
@@ -309,11 +344,12 @@ h2 {
 }
 
 .volume-value {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #667eea;
   min-width: 45px;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .track-buttons {
@@ -405,7 +441,109 @@ h2 {
   }
 }
 
+/* Guess Section */
+.guess-section {
+  margin: 0 0 0 0;
+  padding: 32px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 154px;
+}
+
+.guess-section h2 {
+  color: white;
+  margin-bottom: 15px;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.guess-instructions {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
+.guess-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.song-dropdown {
+  flex: 1;
+  min-width: 200px;
+  padding: 12px 15px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  color: #333;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.song-dropdown:hover:not(:disabled) {
+  background: white;
+  border-color: white;
+}
+
+.song-dropdown:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.song-dropdown:focus {
+  outline: none;
+  border-color: white;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+}
+
+.submit-guess-btn {
+  padding: 12px 30px;
+  border: none;
+  border-radius: 10px;
+  background: white;
+  color: #f5576c;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.submit-guess-btn:hover:not(:disabled) {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.submit-guess-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.submit-guess-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
 /* Responsive */
+@media (max-width: 1024px) {
+  .two-pane-layout {
+    flex-direction: column;
+  }
+
+  .left-pane,
+  .right-pane {
+    width: 100%;
+  }
+}
+
 @media (max-width: 600px) {
   .wav-container {
     padding: 20px;
@@ -426,11 +564,16 @@ h2 {
   .track-item {
     flex-direction: column;
     gap: 10px;
-    text-align: center;
+  }
+
+  .track-content {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .track-name {
     margin-right: 0;
+    text-align: center;
   }
 
   .track-buttons {
@@ -439,6 +582,18 @@ h2 {
   }
 
   .track-btn {
+    width: 100%;
+  }
+
+  .guess-controls {
+    flex-direction: column;
+  }
+
+  .song-dropdown {
+    width: 100%;
+  }
+
+  .submit-guess-btn {
     width: 100%;
   }
 }

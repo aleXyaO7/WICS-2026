@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from './AuthContext';
 import './Login.css';
 
 function Login() {
@@ -9,6 +10,7 @@ function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const API_URL = 'http://localhost:5001/api';
 
@@ -25,9 +27,7 @@ function Login() {
 
       console.log('Login successful:', response.data);
       
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      
-      alert(`Welcome back, ${response.data.user.username}!`);
+      login(response.data.user);
       
       navigate('/player');
     } catch (err) {

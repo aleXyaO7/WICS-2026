@@ -5,11 +5,25 @@ import './Home.css';
 function Home() {
   return (
     <div className="home-container">
+      <img 
+        src="/record-player.gif" 
+        alt="Record Player" 
+        className="background-gif"
+      />
+      
+      <div className="overlay"></div>
+      
+      <img 
+        src="/sheet-music.gif" 
+        alt="Sheet Music" 
+        className="sheet-music-gif"
+      />
+      
       <div className="home-content">
-        <h1 className="home-title">🎵 Music Player App</h1>
+        <h1 className="home-title">Music Player App</h1>
         <p className="home-subtitle">Welcome to your music experience</p>
         
-        <div className="home-buttons">
+        <div className="home-buttons-row">
           <Link to="/player" className="home-button player-button">
             <span className="button-text">
               <div className="button-title">Music Player</div>
