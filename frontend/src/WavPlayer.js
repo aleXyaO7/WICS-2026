@@ -8,6 +8,7 @@ import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
+import { useAuth } from './AuthContext';
 import './WavPlayer.css';
 import './App.css';
 
@@ -61,6 +62,7 @@ function getStemUrl(song, stemKey) {
 
 function WavPlayer() {
   const API_URL = 'http://localhost:5001/api';
+  const { user } = useAuth();
   
   // Music player state
   const [songs, setSongs] = useState([]);
@@ -95,7 +97,9 @@ function WavPlayer() {
   const [resultsError, setResultsError] = useState(null);
   
   // ELO tracking state
-  const [currentElo, setCurrentElo] = useState(1000);
+  const [currentElo, setCurrentElo] = useState(1200);
+  const [calculatedNewElo, setCalculatedNewElo] = useState(null);
+  const [eloChange, setEloChange] = useState(null);
   
   // Web Audio API for volume amplification
   const audioContextRef = useRef(null);
@@ -111,9 +115,14 @@ function WavPlayer() {
     if (initialFetchDone.current) return;
     initialFetchDone.current = true;
     
+    // Initialize ELO from user data
+    if (user && user.elo_rating) {
+      setCurrentElo(user.elo_rating);
+    }
+    
     fetchSongs();
     fetchRandomSong(false);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (!randomSong) return;
@@ -594,6 +603,16 @@ function WavPlayer() {
         clip_start_time: randomSong.clip_start_time || 0
       });
       setSimilarityData(response.data);
+      
+      // Calculate ELO change once when results arrive
+      const baseScore = response.data.similarity_score;
+      const nonVocalStems = Object.keys(stemsUnmuted).filter(stem => stem !== 'Vocals').length;
+      const vocalsUnmuted = stemsUnmuted['Vocals'] ? 1 : 0;
+      const finalPoints = baseScore - (nonVocalStems * POINTS_PER_NON_VOCAL_STEM) - (vocalsUnmuted * POINTS_FOR_VOCALS);
+      const newElo = currentElo + finalPoints;
+      
+      setCalculatedNewElo(newElo);
+      setEloChange(finalPoints);
     } catch (err) {
       console.error('Error fetching similarity data:', err);
       setResultsError('Failed to fetch similarity data');
@@ -602,20 +621,34 @@ function WavPlayer() {
     }
   };
 
-  const handleCloseModal = () => {
-    // Calculate ELO change if similarityData exists
-    if (similarityData) {
-      const baseScore = similarityData.similarity_score;
-      const nonVocalStems = Object.keys(stemsUnmuted).filter(stem => stem !== 'Vocals').length;
-      const vocalsUnmuted = stemsUnmuted['Vocals'] ? 1 : 0;
-      const finalPoints = baseScore - (nonVocalStems * POINTS_PER_NON_VOCAL_STEM) - (vocalsUnmuted * POINTS_FOR_VOCALS);
-      setCurrentElo(prevElo => prevElo + finalPoints);
+  const handleCloseModal = async () => {
+    // Update ELO using the pre-calculated value
+    if (calculatedNewElo !== null && user) {
+      // Update local state
+      setCurrentElo(calculatedNewElo);
+      
+      // Update ELO on backend
+      try {
+        await axios.patch(`${API_URL}/users/${user.id}/elo`, {
+          elo_rating: calculatedNewElo
+        });
+        
+        // Update user in localStorage to persist the new ELO
+        const updatedUser = { ...user, elo_rating: calculatedNewElo };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        console.log('ELO updated successfully:', calculatedNewElo);
+      } catch (error) {
+        console.error('Error updating ELO:', error);
+      }
     }
     
     setResultsModalOpen(false);
     setSimilarityData(null);
     setResultsError(null);
     setGuessedSongId('');
+    setCalculatedNewElo(null);
+    setEloChange(null);
     fetchRandomSong(true);
   };
 
@@ -941,11 +974,9 @@ function WavPlayer() {
                   </div>
 
                   {(() => {
-                    const baseScore = similarityData.similarity_score;
-                    const nonVocalStems = Object.keys(stemsUnmuted).filter(stem => stem !== 'Vocals').length;
-                    const vocalsUnmuted = stemsUnmuted['Vocals'] ? 1 : 0;
-                    const finalPoints = baseScore - (nonVocalStems * POINTS_PER_NON_VOCAL_STEM) - (vocalsUnmuted * POINTS_FOR_VOCALS);
-                    const newElo = currentElo + finalPoints;
+                    // Use pre-calculated values to avoid double-calculation
+                    const finalPoints = eloChange || 0;
+                    const newElo = calculatedNewElo || currentElo;
                     
                     let eloColor;
                     let eloDisplay;
