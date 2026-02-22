@@ -141,7 +141,7 @@ function WavPlayer() {
             const source = audioContext.createMediaElementSource(audio);
             
             const gainNode = audioContext.createGain();
-            gainNode.gain.value = 1.0; // Start at 100%, will be updated by volume effect
+            gainNode.gain.value = 1.0;
             
             source.connect(gainNode);
             gainNode.connect(audioContext.destination);
@@ -186,21 +186,12 @@ function WavPlayer() {
               responsive: true,
               normalize: true,
               mediaControls: false,
-              interact: true,
+              interact: false,
             });
             
             wavesurfer.load(track.url).catch((error) => {
               if (error.name !== 'AbortError') {
                 console.error('Error loading waveform for stem', index, error);
-              }
-            });
-            
-            wavesurfer.on('interaction', () => {
-              const currentTime = wavesurfer.getCurrentTime();
-              if (audio) {
-                audio.currentTime = currentTime;
-                const relativePosition = currentTime - (stemClipStartTime.current || 0);
-                setCurrentPosition(Math.max(0, Math.min(SNIPPET_LENGTH, relativePosition)));
               }
             });
             
@@ -683,11 +674,11 @@ function WavPlayer() {
                         type="range"
                         min="0"
                         max="200"
-                        value={stemVolumes[index] || 100}
+                        value={stemVolumes[index] !== undefined ? stemVolumes[index] : 100}
                         onChange={(e) => handleVolumeChange(index, e.target.value)}
                         className="volume-slider"
                       />
-                      <span className="volume-value">{stemVolumes[index] || 100}%</span>
+                      <span className="volume-value">{stemVolumes[index] !== undefined ? stemVolumes[index] : 100}%</span>
                     </div>
                   </div>
                   <div 
