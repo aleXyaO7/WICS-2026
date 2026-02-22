@@ -24,7 +24,6 @@ def get_audio_features(ids):
     response.raise_for_status()
     return response.json()
 
-
 def get_metadata_for_track(spotify_id: str):
     """
     Get audio-features metadata for a single track by Spotify ID.

@@ -1,5 +1,6 @@
-from flask import Flask, jsonify, send_file
+from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 
 app = Flask(__name__)
@@ -125,6 +126,7 @@ def get_random_song():
     if not supabase_client:
         return jsonify({'error': 'Supabase not configured'}), 503
     bucket = os.environ.get('S3_BUCKET') or os.environ.get('AWS_S3_BUCKET')
+    snippet_length = float(request.args.get('snippet_length', 15))
     try:
         r = supabase_client.table('songs').select('*').execute()
         rows = r.data or []
@@ -140,6 +142,17 @@ def get_random_song():
             stems = _stem_urls_for_song(url_original, bucket)
             for k, v in stems.items():
                 song[k] = v
+        
+        duration = row.get('duration')
+        if duration and duration > snippet_length:
+            max_start_time = duration - snippet_length
+            clip_start_time = random.random() * max_start_time
+        else:
+            default_duration = 180.0
+            max_start_time = max(0, default_duration - snippet_length)
+            clip_start_time = random.random() * max_start_time
+        
+        song['clip_start_time'] = clip_start_time
         return jsonify(song)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -163,6 +176,158 @@ def get_stem_urls():
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({'status': 'ok'})
+
+
+# ===== USER ENDPOINTS =====
+
+@app.route('/api/users/signup', methods=['POST'])
+def signup():
+    """Create a new user account."""
+    try:
+        if not supabase_client:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip()
+        password = data.get('password', '')
+        
+        # Validation
+        if not username or not email or not password:
+            return jsonify({'error': 'Username, email, and password are required'}), 400
+        
+        if len(username) < 3:
+            return jsonify({'error': 'Username must be at least 3 characters'}), 400
+        
+        if len(password) < 6:
+            return jsonify({'error': 'Password must be at least 6 characters'}), 400
+        
+        # Check if username already exists
+        existing_user = supabase_client.table('users').select('id').eq('username', username).execute()
+        if existing_user.data:
+            return jsonify({'error': 'Username already taken'}), 409
+        
+        # Check if email already exists
+        existing_email = supabase_client.table('users').select('id').eq('email', email).execute()
+        if existing_email.data:
+            return jsonify({'error': 'Email already registered'}), 409
+        
+        # Hash password
+        password_hash = generate_password_hash(password)
+        
+        # Create user in database
+        result = supabase_client.table('users').insert({
+            'username': username,
+            'email': email,
+            'password_hash': password_hash,
+            'elo_rating': 1200  # Default ELO rating
+        }).execute()
+        
+        if result.data:
+            user = result.data[0]
+            return jsonify({
+                'message': 'Account created successfully',
+                'user': {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'email': user['email'],
+                    'elo_rating': user['elo_rating']
+                }
+            }), 201
+        else:
+            return jsonify({'error': 'Failed to create account'}), 500
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/users/login', methods=['POST'])
+def login():
+    """Authenticate a user."""
+    try:
+        if not supabase_client:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        # Get user from database
+        result = supabase_client.table('users').select('*').eq('username', username).execute()
+        
+        if not result.data:
+            return jsonify({'error': 'Invalid username or password'}), 401
+        
+        user = result.data[0]
+        
+        # Check password
+        if not check_password_hash(user['password_hash'], password):
+            return jsonify({'error': 'Invalid username or password'}), 401
+        
+        # Return user data (without password hash)
+        return jsonify({
+            'message': 'Login successful',
+            'user': {
+                'id': user['id'],
+                'username': user['username'],
+                'email': user['email'],
+                'elo_rating': user['elo_rating'],
+                'created_at': user['created_at']
+            }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/users/<username>', methods=['GET'])
+def get_user(username):
+    """Get user information by username."""
+    try:
+        if not supabase_client:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        result = supabase_client.table('users').select('id, username, email, elo_rating, created_at').eq('username', username).execute()
+        
+        if not result.data:
+            return jsonify({'error': 'User not found'}), 404
+        
+        return jsonify({'user': result.data[0]}), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/users/<user_id>/elo', methods=['PATCH'])
+def update_elo(user_id):
+    """Update user's ELO rating."""
+    try:
+        if not supabase_client:
+            return jsonify({'error': 'Database not configured'}), 500
+        
+        data = request.get_json()
+        new_elo = data.get('elo_rating')
+        
+        if new_elo is None:
+            return jsonify({'error': 'elo_rating is required'}), 400
+        
+        result = supabase_client.table('users').update({
+            'elo_rating': new_elo
+        }).eq('id', user_id).execute()
+        
+        if result.data:
+            return jsonify({
+                'message': 'ELO rating updated',
+                'user': result.data[0]
+            }), 200
+        else:
+            return jsonify({'error': 'User not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 if __name__ == '__main__':
