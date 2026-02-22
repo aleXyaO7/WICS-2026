@@ -40,6 +40,7 @@ Thumbs.db
 *test.py
 
 backend/downloads/
+backend/spotify_ids.py
 
 node_modules/
 frontend/build/
