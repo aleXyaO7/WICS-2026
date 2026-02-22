@@ -139,3 +139,10 @@ def insert_song(
     if not rows:
         return None
     return rows[0]
+
+
+if __name__ == "__main__":
+    spotify_id = "0VjIjW4GlUZAMYd2vXMi3b"
+    print(f"Testing get_metadata_by_spotify_id({spotify_id!r})")
+    result = get_metadata_by_spotify_id(spotify_id)
+    print("Result:", result)
