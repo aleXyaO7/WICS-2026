@@ -1,12 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import axios from 'axios';
 import WaveSurfer from 'wavesurfer.js';
 import { Slider, IconButton, Dialog, DialogTitle, DialogContent, CircularProgress, TextField, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
-import HomeIcon from '@mui/icons-material/Home';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
@@ -95,6 +93,9 @@ function WavPlayer() {
   const [loadingResults, setLoadingResults] = useState(false);
   const [similarityData, setSimilarityData] = useState(null);
   const [resultsError, setResultsError] = useState(null);
+  
+  // ELO tracking state
+  const [currentElo, setCurrentElo] = useState(1000);
   
   // Web Audio API for volume amplification
   const audioContextRef = useRef(null);
@@ -602,6 +603,15 @@ function WavPlayer() {
   };
 
   const handleCloseModal = () => {
+    // Calculate ELO change if similarityData exists
+    if (similarityData) {
+      const baseScore = similarityData.similarity_score;
+      const nonVocalStems = Object.keys(stemsUnmuted).filter(stem => stem !== 'Vocals').length;
+      const vocalsUnmuted = stemsUnmuted['Vocals'] ? 1 : 0;
+      const finalPoints = baseScore - (nonVocalStems * POINTS_PER_NON_VOCAL_STEM) - (vocalsUnmuted * POINTS_FOR_VOCALS);
+      setCurrentElo(prevElo => prevElo + finalPoints);
+    }
+    
     setResultsModalOpen(false);
     setSimilarityData(null);
     setResultsError(null);
@@ -624,11 +634,6 @@ function WavPlayer() {
     <ThemeProvider theme={theme}>
       <div className="wav-player">
         <div className="wav-container">
-        <div className="header-row">
-          <Link to="/" className="back-button"><HomeIcon /></Link>
-          <h1>Multi-Track WAV Player</h1>
-        </div>
-
         <div className="two-pane-layout">
           <div className="left-pane">
             <div className="tracks-section">
@@ -935,52 +940,101 @@ function WavPlayer() {
                     </div>
                   </div>
 
-                  <div className="similarity-score">
-                    <h2>Similarity Score</h2>
-                    <div className="score-value">{similarityData.similarity_score}%</div>
-                    <p className="score-description">{similarityData.message}</p>
-                  </div>
-
-                  <div className="stems-used-info" style={{ 
-                    textAlign: 'center', 
-                    padding: '15px', 
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    borderRadius: '10px',
-                    color: 'white',
-                    marginBottom: '20px',
-                    fontWeight: 600
-                  }}>
-                    <div>Stems Listened To: {Object.keys(stemsUnmuted).length} / {stemTracks.length}</div>
-                    {Object.keys(stemsUnmuted).length > 0 && (
-                      <div style={{ marginTop: '8px', fontSize: '0.9em', opacity: 0.95 }}>
-                        ({Object.keys(stemsUnmuted).join(', ')})
-                      </div>
-                    )}
-                  </div>
-
                   {(() => {
                     const baseScore = similarityData.similarity_score;
                     const nonVocalStems = Object.keys(stemsUnmuted).filter(stem => stem !== 'Vocals').length;
                     const vocalsUnmuted = stemsUnmuted['Vocals'] ? 1 : 0;
                     const finalPoints = baseScore - (nonVocalStems * POINTS_PER_NON_VOCAL_STEM) - (vocalsUnmuted * POINTS_FOR_VOCALS);
+                    const newElo = currentElo + finalPoints;
                     
-                    let pointsColor;
-                    let pointsDisplay;
+                    let eloColor;
+                    let eloDisplay;
                     
                     if (finalPoints > 0) {
-                      pointsColor = '#22c55e';
-                      pointsDisplay = `+${finalPoints}`;
+                      eloColor = '#22c55e';
+                      eloDisplay = `+${finalPoints}`;
                     } else if (finalPoints < 0) {
-                      pointsColor = '#ef4444';
-                      pointsDisplay = finalPoints;
+                      eloColor = '#ef4444';
+                      eloDisplay = finalPoints;
                     } else {
-                      pointsColor = '#9ca3af';
-                      pointsDisplay = '0';
+                      eloColor = '#9ca3af';
+                      eloDisplay = '0';
                     }
                     
                     return (
-                      <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '2rem', fontWeight: 'bold', color: pointsColor }}>
-                        {pointsDisplay}
+                      <div style={{ 
+                        display: 'flex', 
+                        gap: '20px', 
+                        marginBottom: '30px',
+                        marginTop: '20px'
+                      }}>
+                        <div style={{ 
+                          flex: 1,
+                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          borderRadius: '15px',
+                          padding: '30px',
+                          color: 'white',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          <h2 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: 600 }}>Similarity Score</h2>
+                          <div style={{ fontSize: '3.5rem', fontWeight: 'bold', margin: '10px 0' }}>
+                            {similarityData.similarity_score}%
+                          </div>
+                          <p style={{ margin: '10px 0 0 0', fontSize: '1rem', opacity: 0.95, textAlign: 'center' }}>
+                            {similarityData.message}
+                          </p>
+                        </div>
+                        
+                        <div style={{ 
+                          flex: 1,
+                          background: '#f8f9fa',
+                          borderRadius: '15px',
+                          padding: '30px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-around'
+                        }}>
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '15px 0',
+                            borderBottom: '2px solid #e9ecef'
+                          }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057' }}>Stems Used</span>
+                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#6750A4' }}>
+                              {Object.keys(stemsUnmuted).length} / {stemTracks.length}
+                            </span>
+                          </div>
+                          
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '15px 0',
+                            borderBottom: '2px solid #e9ecef'
+                          }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057' }}>ELO Gained</span>
+                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: eloColor }}>
+                              {eloDisplay}
+                            </span>
+                          </div>
+                          
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '15px 0'
+                          }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057' }}>New Overall ELO</span>
+                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#6750A4' }}>
+                              {newElo}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     );
                   })()}
