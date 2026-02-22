@@ -120,20 +120,41 @@ def _stem_urls_for_song(url_original, bucket=None):
     return urls
 
 
+def _spotify_ids_from_play_file():
+    """Read play.txt (same dir as this file); return list of spotify IDs. Lines can be 'id' or 'name,id'."""
+    play_path = os.path.join(os.path.dirname(__file__), 'play.txt')
+    if not os.path.exists(play_path):
+        return []
+    ids = []
+    with open(play_path, 'r') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            part = line.split(',')[-1].strip()  # support "name,id" or just "id"
+            if part:
+                ids.append(part)
+    return ids
+
+
 @app.route('/api/songs/random', methods=['GET'])
 def get_random_song():
-    """Return a random song from the DB with stem URLs built from S3 (base + instrument)."""
+    """Return a random song from the DB with stem URLs built from S3 (base + instrument). Song is chosen from play.txt."""
     if not supabase_client:
         return jsonify({'error': 'Supabase not configured'}), 503
     bucket = os.environ.get('S3_BUCKET') or os.environ.get('AWS_S3_BUCKET')
     snippet_length = float(request.args.get('snippet_length', 15))
     try:
-        r = supabase_client.table('songs').select('*').execute()
+        import random
+        spotify_ids = _spotify_ids_from_play_file()
+        if not spotify_ids:
+            return jsonify({'error': 'play.txt is empty or not found'}), 404
+        spotify_id = random.choice(spotify_ids)
+        r = supabase_client.table('songs').select('*').eq('spotify_id', spotify_id).execute()
         rows = r.data or []
         if not rows:
-            return jsonify({'error': 'No songs in database'}), 404
-        import random
-        row = random.choice(rows)
+            return jsonify({'error': f'Song with spotify_id {spotify_id} not in database'}), 404
+        row = rows[0]
         song = _row_to_song(row)
         url_original = row.get('url_original')
         if url_original:
