@@ -78,7 +78,7 @@ def upload_stems_to_s3(folder_name, object_name, bucket, downloads_root="downloa
 
 if __name__ == "__main__":
     import sys
-    if len(sys.argv) < 4:
+    if len(sys.argv) < 3:
         print("Usage: python upload_stems_to_s3.py <folder_name> <object_name> <bucket>")
         print("  folder_name: subfolder under downloads (e.g. 'Blinding Lights')")
         print("  object_name: base S3 key (e.g. 'blinding-lights') -> uploads blinding-lights-drums.wav, etc.")
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         sys.exit(1)
     folder_name = sys.argv[1]
     object_name = sys.argv[2]
-    bucket = sys.argv[3]
+    bucket = "wics-2026-audio"
     result = upload_stems_to_s3(folder_name, object_name, bucket)
     print(f"Done: {len(result['uploaded'])} uploaded, {len(result['skipped'])} skipped")
     sys.exit(0 if result["uploaded"] else 1)
