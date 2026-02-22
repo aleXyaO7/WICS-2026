@@ -93,12 +93,6 @@ function Layout({ children }) {
             <IconButton
               onClick={handleOpenRules}
               sx={{
-<<<<<<< HEAD
-                color: 'white',
-                fontWeight: 600,
-                textDecoration: 'none',
-                '&:hover': { textDecoration: 'underline' },
-=======
                 background: '#f8f9fa',
                 color: '#333',
                 borderRadius: '8px',
@@ -107,7 +101,6 @@ function Layout({ children }) {
                   background: '#e9ecef',
                   transform: 'translateY(-1px)',
                 },
->>>>>>> 4df58454b2bd179c3ce5fab046f6b00da2e86239
               }}
             >
               <InfoIcon />

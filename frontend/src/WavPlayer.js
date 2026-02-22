@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import WaveSurfer from 'wavesurfer.js';
-import { Slider, IconButton, Dialog, DialogTitle, DialogContent, CircularProgress, TextField, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
+import { Box, Slider, IconButton, Dialog, DialogTitle, DialogContent, CircularProgress, TextField, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import VolumeUpIcon from '@mui/icons-material/VolumeUp';
 import VolumeOffIcon from '@mui/icons-material/VolumeOff';
@@ -929,29 +929,41 @@ function WavPlayer() {
             sx: {
               borderRadius: 3,
               padding: 2,
+              backgroundColor: 'black',
+              color: 'white',
+              '& .MuiDialogContent-root': {
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+                '&::-webkit-scrollbar': { display: 'none' },
+              },
             },
           }}
         >
           {loadingResults ? (
-            <DialogContent sx={{ textAlign: 'center', py: 6 }}>
-              <CircularProgress size={60} sx={{ mb: 3 }} />
-              <DialogTitle sx={{ p: 0 }}>Calculating Similarity...</DialogTitle>
-              <p style={{ color: '#666', marginTop: '10px' }}>Please wait while we compare the songs...</p>
+            <DialogContent sx={{ textAlign: 'center', py: 6, color: 'white' }}>
+              <CircularProgress size={60} sx={{ mb: 3, color: 'white' }} />
+              <DialogTitle sx={{ p: 0, color: 'white' }}>Calculating Similarity...</DialogTitle>
+              <p style={{ color: 'rgba(255,255,255,0.9)', marginTop: '10px' }}>Please wait while we compare the songs...</p>
             </DialogContent>
           ) : resultsError ? (
-            <DialogContent sx={{ textAlign: 'center', py: 4 }}>
-              <DialogTitle sx={{ p: 0, color: '#dc3545' }}>Error</DialogTitle>
-              <p style={{ color: '#666', marginTop: '10px' }}>{resultsError}</p>
+            <DialogContent sx={{ textAlign: 'center', py: 4, color: 'white' }}>
+              <DialogTitle sx={{ p: 0, color: '#f87171' }}>Error</DialogTitle>
+              <p style={{ color: 'rgba(255,255,255,0.9)', marginTop: '10px' }}>{resultsError}</p>
               <button onClick={handleCloseModal} className="submit-guess-btn" style={{ marginTop: '20px' }}>
                 Close
               </button>
             </DialogContent>
           ) : similarityData ? (
             <>
-              <DialogTitle sx={{ textAlign: 'center', fontSize: '1.8rem', fontWeight: 600, color: '#6750A4' }}>
-                Song Similarity Results
-              </DialogTitle>
-              <DialogContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', px: 2, pt: 1, pb: 0 }}>
+                <Box component="span" sx={{ fontSize: '1.8rem', fontWeight: 600, color: 'white', fontFamily: '"IM Fell French Canon", serif' }}>
+                  wavelength.
+                </Box>
+                <button type="button" onClick={handleCloseModal} className="results-play-again-btn">
+                  Play again
+                </button>
+              </Box>
+              <DialogContent className="wavplayer-results-content">
                 <div className="results-section">
                   <div className="song-comparison">
                     <div className="comparison-item">
@@ -1001,32 +1013,35 @@ function WavPlayer() {
                       }}>
                         <div style={{ 
                           flex: 1,
-                          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                          background: 'white',
                           borderRadius: '15px',
                           padding: '30px',
-                          color: 'white',
+                          color: 'black',
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'center',
-                          justifyContent: 'center'
+                          justifyContent: 'center',
+                          fontFamily: '"Courier Prime", monospace'
                         }}>
-                          <h2 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: 600 }}>Similarity Score</h2>
-                          <div style={{ fontSize: '3.5rem', fontWeight: 'bold', margin: '10px 0' }}>
+                          <h2 style={{ margin: '0 0 15px 0', fontSize: '1.3rem', fontWeight: 600, color: 'black', fontFamily: '"Courier Prime", monospace' }}>Similarity Score</h2>
+                          <div style={{ fontSize: '3.5rem', fontWeight: 'bold', margin: '10px 0', color: 'black', fontFamily: '"Courier Prime", monospace' }}>
                             {similarityData.similarity_score}%
                           </div>
-                          <p style={{ margin: '10px 0 0 0', fontSize: '1rem', opacity: 0.95, textAlign: 'center' }}>
+                          <p style={{ margin: '10px 0 0 0', fontSize: '1rem', color: '#333', textAlign: 'center', fontFamily: '"Courier Prime", monospace' }}>
                             {similarityData.message}
                           </p>
                         </div>
                         
                         <div style={{ 
                           flex: 1,
-                          background: '#f8f9fa',
+                          background: 'white',
                           borderRadius: '15px',
                           padding: '30px',
                           display: 'flex',
                           flexDirection: 'column',
-                          justifyContent: 'space-around'
+                          justifyContent: 'space-around',
+                          color: 'black',
+                          fontFamily: '"Courier Prime", monospace'
                         }}>
                           <div style={{ 
                             display: 'flex', 
@@ -1035,8 +1050,8 @@ function WavPlayer() {
                             padding: '15px 0',
                             borderBottom: '2px solid #e9ecef'
                           }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057' }}>Stems Used</span>
-                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#6750A4' }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057', fontFamily: '"Courier Prime", monospace' }}>Stems Used</span>
+                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#333', fontFamily: '"Courier Prime", monospace' }}>
                               {Object.keys(stemsUnmuted).length} / {stemTracks.length}
                             </span>
                           </div>
@@ -1048,8 +1063,8 @@ function WavPlayer() {
                             padding: '15px 0',
                             borderBottom: '2px solid #e9ecef'
                           }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057' }}>ELO Gained</span>
-                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: eloColor }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057', fontFamily: '"Courier Prime", monospace' }}>ELO Gained</span>
+                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: eloColor, fontFamily: '"Courier Prime", monospace' }}>
                               {eloDisplay}
                             </span>
                           </div>
@@ -1060,8 +1075,8 @@ function WavPlayer() {
                             alignItems: 'center',
                             padding: '15px 0'
                           }}>
-                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057' }}>New Overall ELO</span>
-                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#6750A4' }}>
+                            <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#495057', fontFamily: '"Courier Prime", monospace' }}>New Overall ELO</span>
+                            <span style={{ fontSize: '1.3rem', fontWeight: 'bold', color: '#333', fontFamily: '"Courier Prime", monospace' }}>
                               {newElo}
                             </span>
                           </div>
@@ -1111,12 +1126,6 @@ function WavPlayer() {
                       </div>
                     </div>
                   )}
-
-                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                    <button onClick={handleCloseModal} className="submit-guess-btn">
-                      Close
-                    </button>
-                  </div>
                 </div>
               </DialogContent>
             </>

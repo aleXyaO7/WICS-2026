@@ -597,3 +597,83 @@ h2 {
     width: 100%;
   }
 }
+
+/* Results modal – black background, wavelength style */
+.wavplayer-results-content {
+  color: white;
+}
+
+.wavplayer-results-content .results-section {
+  color: white;
+}
+
+.wavplayer-results-content .song-comparison {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wavplayer-results-content .comparison-item h3 {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.wavplayer-results-content .song-title {
+  color: white;
+}
+
+.wavplayer-results-content .song-artists {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.wavplayer-results-content .comparison-arrow {
+  color: white;
+}
+
+.wavplayer-results-content .metadata-comparison {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.wavplayer-results-content .metadata-comparison h3 {
+  color: white;
+}
+
+/* Characteristics comparison: no gradients, no bars */
+.wavplayer-results-content .metadata-header,
+.wavplayer-results-content .metadata-header.actual-header,
+.wavplayer-results-content .metadata-header.guessed-header,
+.wavplayer-results-content .metadata-header.match-header {
+  background: #333 !important;
+  color: white;
+}
+
+.wavplayer-results-content .metadata-value.metadata-actual,
+.wavplayer-results-content .metadata-value.metadata-guessed,
+.wavplayer-results-content .metadata-value.metadata-match {
+  background: white !important;
+  border-left: none !important;
+  color: #333;
+}
+
+.wavplayer-results-content .metadata-value.metadata-match {
+  font-weight: 600;
+  color: #333;
+}
+
+.wavplayer-results-content .metadata-value {
+  font-family: "Courier Prime", monospace;
+}
+
+.results-play-again-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+  transition: opacity 0.2s;
+}
+
+.results-play-again-btn:hover {
+  opacity: 0.85;
+}
