@@ -2,6 +2,7 @@ from flask import Flask, jsonify, send_file, request
 from flask_cors import CORS
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+from similarity_score import calculate_similarity
 
 app = Flask(__name__)
 CORS(app)
@@ -248,6 +249,9 @@ def submit_guess():
         # Convert spotify IDs to songmap format (e.g., 'blinding-lights')
         actual_song_name = spotify_to_songname.get(actual_spotify_id)
         guessed_song_name = spotify_to_songname.get(guessed_spotify_id)
+
+        print("ACTUAL SONG NAME:", actual_song_name)
+        print("GUESSED SONG NAME:", guessed_song_name)
         
         if not actual_song_name or not guessed_song_name:
             return jsonify({
@@ -256,26 +260,34 @@ def submit_guess():
         
         # Calculate real similarity using the similarity_score module
         try:
-            from similarity_score import similarity_score as calc_similarity, _filter_metadata_diff, _embedding_score
-            
-            # Get the overall similarity score (0 to 1)
-            overall_score = calc_similarity(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
+            overall_score, actual_metadata, guessed_metadata, metadata_breakdown = calculate_similarity(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
             similarity_percentage = int(overall_score * 100)
+
             
-            # Get detailed breakdown
-            metadata_breakdown = _filter_metadata_diff(actual_song_name, guessed_song_name)
-            
-            # Get embedding similarity
-            embedding_score = _embedding_score(actual_song_name, guessed_song_name, int(clip_start_time), duration=15)
-            
-            # Format breakdown as percentages
             breakdown = {
-                'Audio Similarity': int(embedding_score * 100),
                 'Key Match': int(metadata_breakdown['key'] * 100),
                 'Tempo Match': int(metadata_breakdown['tempo'] * 100),
                 'Energy Match': int(metadata_breakdown['energy'] * 100),
                 'Mood Match': int(metadata_breakdown['mood'] * 100),
                 'Loudness Match': int(metadata_breakdown['loud'] * 100),
+            }
+            
+            actual_song_metadata = {
+                'key': actual_metadata.get('key'),
+                'mode': actual_metadata.get('mode'),
+                'tempo': round(actual_metadata.get('tempo', 0), 1),
+                'energy': round(actual_metadata.get('energy', 0), 2),
+                'valence': round(actual_metadata.get('valence', 0), 2),
+                'loudness': round(actual_metadata.get('loudness', 0), 2),
+            }
+            
+            guessed_song_metadata = {
+                'key': guessed_metadata.get('key'),
+                'mode': guessed_metadata.get('mode'),
+                'tempo': round(guessed_metadata.get('tempo', 0), 1),
+                'energy': round(guessed_metadata.get('energy', 0), 2),
+                'valence': round(guessed_metadata.get('valence', 0), 2),
+                'loudness': round(guessed_metadata.get('loudness', 0), 2),
             }
             
             # Generate message based on score
@@ -292,6 +304,8 @@ def submit_guess():
             
         except Exception as similarity_error:
             print(f"Error calculating similarity: {similarity_error}")
+            import traceback
+            traceback.print_exc()
             # Fallback to simple comparison if similarity calculation fails
             if is_correct:
                 similarity_percentage = 100
@@ -300,10 +314,14 @@ def submit_guess():
                 similarity_percentage = 50
                 message = "Unable to calculate detailed similarity."
             breakdown = {}
+            actual_song_metadata = {}
+            guessed_song_metadata = {}
         
         return jsonify({
             'actual_song': actual_song,
             'guessed_song': guessed_song,
+            'actual_song_metadata': actual_song_metadata,
+            'guessed_song_metadata': guessed_song_metadata,
             'similarity_score': similarity_percentage,
             'message': message,
             'breakdown': breakdown,

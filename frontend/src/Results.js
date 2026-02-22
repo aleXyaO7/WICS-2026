@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
@@ -10,17 +10,20 @@ function Results() {
   const [loading, setLoading] = useState(true);
   const [similarityData, setSimilarityData] = useState(null);
   const [error, setError] = useState(null);
-  
-  // Get data passed via navigation state
   const { actualSongId, guessedSongId, clipStartTime } = location.state || {};
 
+  const initialFetchDone = useRef(false);
+
   useEffect(() => {
+    if (initialFetchDone.current) return;
+    
     if (!actualSongId || !guessedSongId) {
       setError('Missing song information');
       setLoading(false);
       return;
     }
 
+    initialFetchDone.current = true;
     fetchSimilarityData();
   }, [actualSongId, guessedSongId]);
 
@@ -99,22 +102,58 @@ function Results() {
               <p className="score-description">{similarityData.message}</p>
             </div>
 
-            <div className="similarity-breakdown">
-              <h3>Detailed Breakdown</h3>
-              <div className="breakdown-list">
-                {Object.entries(similarityData.breakdown || {}).map(([key, value]) => (
-                  <div key={key} className="breakdown-item">
-                    <span className="breakdown-label">{key}:</span>
-                    <span className="breakdown-value">{value}%</span>
+            {similarityData.actual_song_metadata && similarityData.guessed_song_metadata && (
+              <div className="metadata-comparison">
+                <h3>Audio Characteristics Comparison</h3>
+                
+                <div className="metadata-grid metadata-grid-4col">
+                  <div className="metadata-header"></div>
+                  <div className="metadata-header actual-header">Actual Song</div>
+                  <div className="metadata-header guessed-header">Your Guess</div>
+                  <div className="metadata-header match-header">Match %</div>
+                  
+                  <div className="metadata-row-label">Key</div>
+                  <div className="metadata-value metadata-actual">
+                    {getKeyName(similarityData.actual_song_metadata.key)} {similarityData.actual_song_metadata.mode === 1 ? 'Major' : 'Minor'}
                   </div>
-                ))}
+                  <div className="metadata-value metadata-guessed">
+                    {getKeyName(similarityData.guessed_song_metadata.key)} {similarityData.guessed_song_metadata.mode === 1 ? 'Major' : 'Minor'}
+                  </div>
+                  <div className="metadata-value metadata-match">{similarityData.breakdown?.['Key Match'] || 0}%</div>
+                  
+                  <div className="metadata-row-label">Tempo (BPM)</div>
+                  <div className="metadata-value metadata-actual">{similarityData.actual_song_metadata.tempo}</div>
+                  <div className="metadata-value metadata-guessed">{similarityData.guessed_song_metadata.tempo}</div>
+                  <div className="metadata-value metadata-match">{similarityData.breakdown?.['Tempo Match'] || 0}%</div>
+                  
+                  <div className="metadata-row-label">Energy</div>
+                  <div className="metadata-value metadata-actual">{(similarityData.actual_song_metadata.energy * 100).toFixed(0)}%</div>
+                  <div className="metadata-value metadata-guessed">{(similarityData.guessed_song_metadata.energy * 100).toFixed(0)}%</div>
+                  <div className="metadata-value metadata-match">{similarityData.breakdown?.['Energy Match'] || 0}%</div>
+                  
+                  <div className="metadata-row-label">Valence (Mood)</div>
+                  <div className="metadata-value metadata-actual">{(similarityData.actual_song_metadata.valence * 100).toFixed(0)}%</div>
+                  <div className="metadata-value metadata-guessed">{(similarityData.guessed_song_metadata.valence * 100).toFixed(0)}%</div>
+                  <div className="metadata-value metadata-match">{similarityData.breakdown?.['Mood Match'] || 0}%</div>
+                  
+                  <div className="metadata-row-label">Loudness (dB)</div>
+                  <div className="metadata-value metadata-actual">{similarityData.actual_song_metadata.loudness}</div>
+                  <div className="metadata-value metadata-guessed">{similarityData.guessed_song_metadata.loudness}</div>
+                  <div className="metadata-value metadata-match">{similarityData.breakdown?.['Loudness Match'] || 0}%</div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+// Helper function to convert key number to key name
+function getKeyName(key) {
+  const keyNames = ['C', 'C♯/D♭', 'D', 'D♯/E♭', 'E', 'F', 'F♯/G♭', 'G', 'G♯/A♭', 'A', 'A♯/B♭', 'B'];
+  return keyNames[key] || 'Unknown';
 }
 
 export default Results;

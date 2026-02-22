@@ -414,6 +414,93 @@ h2 {
   font-size: 1.1rem;
 }
 
+/* Metadata Comparison */
+.metadata-comparison {
+  margin-top: 30px;
+  padding: 25px;
+  background: #f8f9fa;
+  border-radius: 15px;
+}
+
+.metadata-comparison h3 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.metadata-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 2px;
+  background: #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.metadata-grid-4col {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.metadata-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 15px;
+  font-weight: 600;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.metadata-header.actual-header {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+}
+
+.metadata-header.guessed-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.metadata-header.match-header {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+}
+
+.metadata-row-label {
+  background: white;
+  padding: 15px;
+  font-weight: 600;
+  color: #495057;
+  display: flex;
+  align-items: center;
+}
+
+.metadata-value {
+  background: white;
+  padding: 15px;
+  text-align: center;
+  font-size: 1rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.metadata-value.metadata-actual {
+  background: rgba(40, 167, 69, 0.05);
+  border-left: 3px solid #28a745;
+}
+
+.metadata-value.metadata-guessed {
+  background: rgba(245, 87, 108, 0.05);
+  border-left: 3px solid #f5576c;
+}
+
+.metadata-value.metadata-match {
+  background: rgba(255, 193, 7, 0.05);
+  border-left: 3px solid #ffc107;
+  font-weight: 600;
+  color: #ff9800;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
   .container {
     padding: 20px;
@@ -438,5 +525,24 @@ h2 {
 
   .score-value {
     font-size: 3rem;
+  }
+
+  .metadata-grid {
+    grid-template-columns: 1fr;
+    gap: 1px;
+  }
+
+  .metadata-grid-4col {
+    grid-template-columns: 1fr;
+  }
+
+  .metadata-header:first-child {
+    display: none;
+  }
+
+  .metadata-row-label {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
   }
 }
