@@ -1,11 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import WaveSurfer from 'wavesurfer.js';
+import { Slider, IconButton, Dialog, DialogTitle, DialogContent, CircularProgress, TextField, MenuItem, FormControl, InputLabel, Select } from '@mui/material';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+import VolumeUpIcon from '@mui/icons-material/VolumeUp';
+import VolumeOffIcon from '@mui/icons-material/VolumeOff';
+import HomeIcon from '@mui/icons-material/Home';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PauseIcon from '@mui/icons-material/Pause';
+import ReplayIcon from '@mui/icons-material/Replay';
 import './WavPlayer.css';
 import './App.css';
 
 const SNIPPET_LENGTH = 15;
+
+const POINTS_PER_NON_VOCAL_STEM = 10; // Points deducted for each non-vocal stem unmuted
+const POINTS_FOR_VOCALS = 50; // Points deducted if vocals are unmuted
+
+const theme = createTheme({
+  palette: {
+    primary: {
+      main: '#6750A4',
+    },
+  },
+});
 
 const STEM_LABELS = {
   url_drum: 'Drums',
@@ -44,7 +63,6 @@ function getStemUrl(song, stemKey) {
 
 function WavPlayer() {
   const API_URL = 'http://localhost:5001/api';
-  const navigate = useNavigate();
   
   // Music player state
   const [songs, setSongs] = useState([]);
@@ -69,6 +87,14 @@ function WavPlayer() {
   const [currentPosition, setCurrentPosition] = useState(0);
   const positionUpdateInterval = useRef(null);
   const [stemVolumes, setStemVolumes] = useState({});
+  const [volumeControlsVisible, setVolumeControlsVisible] = useState({});
+  const [stemsUnmuted, setStemsUnmuted] = useState({});
+  
+  // Results modal state
+  const [resultsModalOpen, setResultsModalOpen] = useState(false);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [similarityData, setSimilarityData] = useState(null);
+  const [resultsError, setResultsError] = useState(null);
   
   // Web Audio API for volume amplification
   const audioContextRef = useRef(null);
@@ -111,9 +137,10 @@ function WavPlayer() {
     
     const initialVolumes = {};
     tracks.forEach((_, index) => {
-      initialVolumes[index] = 100;
+      initialVolumes[index] = 0; // Start muted
     });
     setStemVolumes(initialVolumes);
+    setStemsUnmuted({}); // Reset unmuted tracking
   }, [randomSong]);
 
   useEffect(() => {
@@ -145,7 +172,8 @@ function WavPlayer() {
             const source = audioContext.createMediaElementSource(audio);
             
             const gainNode = audioContext.createGain();
-            gainNode.gain.value = 1.0;
+            // Set initial gain based on current volume state (starts at 0)
+            gainNode.gain.value = (stemVolumes[index] !== undefined ? stemVolumes[index] : 0) / 100;
             
             source.connect(gainNode);
             gainNode.connect(audioContext.destination);
@@ -486,8 +514,8 @@ function WavPlayer() {
     setStemPlayingStates((prev) => ({ ...prev, [index]: false }));
   };
 
-  const handleSliderChange = (e) => {
-    const newPosition = parseFloat(e.target.value);
+  const handleSliderChange = (event, newValue) => {
+    const newPosition = newValue;
     setCurrentPosition(newPosition);
     
     const absoluteTime = (stemClipStartTime.current || 0) + newPosition;
@@ -528,11 +556,21 @@ function WavPlayer() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleVolumeChange = (index, value) => {
-    setStemVolumes((prev) => ({ ...prev, [index]: parseInt(value) }));
+  const handleVolumeChange = (index) => (event, newValue) => {
+    setStemVolumes((prev) => ({ ...prev, [index]: newValue }));
+    
+    // Track if this stem has been unmuted (volume > 0)
+    if (newValue > 0 && stemTracks[index]) {
+      const stemLabel = stemTracks[index].label;
+      setStemsUnmuted((prev) => ({ ...prev, [stemLabel]: true }));
+    }
   };
 
-  const handleSubmitGuess = () => {
+  const toggleVolumeControl = (index) => {
+    setVolumeControlsVisible((prev) => ({ ...prev, [index]: !prev[index] }));
+  };
+
+  const handleSubmitGuess = async () => {
     if (!guessedSongId) {
       alert('Please select a song guess');
       return;
@@ -543,13 +581,37 @@ function WavPlayer() {
       return;
     }
 
-    navigate('/results', {
-      state: {
-        actualSongId: randomSong.id,
-        guessedSongId: guessedSongId,
-        clipStartTime: randomSong.clip_start_time || 0
-      }
-    });
+    // Open modal and start loading
+    setResultsModalOpen(true);
+    setLoadingResults(true);
+    setResultsError(null);
+    
+    try {
+      const response = await axios.post(`${API_URL}/guess`, {
+        actual_song_id: randomSong.id,
+        guessed_song_id: guessedSongId,
+        clip_start_time: randomSong.clip_start_time || 0
+      });
+      setSimilarityData(response.data);
+    } catch (err) {
+      console.error('Error fetching similarity data:', err);
+      setResultsError('Failed to fetch similarity data');
+    } finally {
+      setLoadingResults(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setResultsModalOpen(false);
+    setSimilarityData(null);
+    setResultsError(null);
+    setGuessedSongId('');
+    fetchRandomSong(true);
+  };
+
+  const getKeyName = (key) => {
+    const keyNames = ['C', 'C♯/D♭', 'D', 'D♯/E♭', 'E', 'F', 'F♯/G♭', 'G', 'G♯/A♭', 'A', 'A♯/B♭', 'B'];
+    return keyNames[key] || 'Unknown';
   };
 
   const singleStemEntries = randomSong
@@ -559,210 +621,425 @@ function WavPlayer() {
     : [];
 
   return (
-    <div className="wav-player">
-      <div className="wav-container">
-        <Link to="/" className="back-button">Back to Home</Link>
-        <h1>Multi-Track WAV Player</h1>
+    <ThemeProvider theme={theme}>
+      <div className="wav-player">
+        <div className="wav-container">
+        <div className="header-row">
+          <Link to="/" className="back-button"><HomeIcon /></Link>
+          <h1>Multi-Track WAV Player</h1>
+        </div>
 
-        <div className="random-section">
-          <h2>Random song + stems</h2>
-          <button
-            type="button"
-            className="random-btn"
-            onClick={fetchRandomSong}
-            disabled={randomLoading}
-          >
-            {randomLoading ? 'Loading…' : 'Get random song'}
-          </button>
-          {randomSong && (
-            <div className="random-song-card">
-              <div className="random-song-info">
-                <div className="random-song-title">{randomSong.name}</div>
-                {randomSong.artists && (
-                  <div className="random-song-artists">{randomSong.artists}</div>
-                )}
-              </div>
-              <div className="stems-row">
-                <span className="stems-label">Stems:</span>
-                <div className="stems-list">
-                  {singleStemEntries.map(([key, label, url]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      className={`stem-btn ${playingStem === key ? 'active' : ''}`}
-                      onClick={() => playStem(key, url)}
-                    >
-                      {playingStem === key ? '⏸' : '▶'} {label}
-                    </button>
+        <div className="two-pane-layout">
+          <div className="left-pane">
+            <div className="tracks-section">
+              {stemTracks.length === 0 ? (
+                <p className="empty">Loading instrumental stems...</p>
+              ) : (
+                <div className="tracks-list">
+                  {stemTracks.slice(0, 3).map((track, index) => (
+                    <div key={track.key} className="track-item">
+                      <div className="track-name-header">
+                        <span className="track-name">{track.label}</span>
+                        <IconButton
+                          onClick={() => toggleVolumeControl(index)}
+                          size="small"
+                          sx={{
+                            color: 'primary.main',
+                            marginLeft: '8px',
+                            '&:hover': {
+                              backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                            },
+                          }}
+                          aria-label={`Toggle ${track.label} volume control`}
+                        >
+                          {stemVolumes[index] === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                        </IconButton>
+                        {volumeControlsVisible[index] && (
+                          <>
+                            <Slider
+                              orientation="horizontal"
+                              value={stemVolumes[index] !== undefined ? stemVolumes[index] : 0}
+                              onChange={handleVolumeChange(index)}
+                              min={0}
+                              max={200}
+                              step={1}
+                              aria-label={`${track.label} volume`}
+                              sx={{
+                                flex: 1,
+                                marginLeft: '15px',
+                                marginRight: '10px',
+                                color: 'primary.main',
+                                '& .MuiSlider-thumb': {
+                                  width: 14,
+                                  height: 14,
+                                },
+                                '& .MuiSlider-track': {
+                                  height: 3,
+                                },
+                                '& .MuiSlider-rail': {
+                                  height: 3,
+                                  opacity: 0.3,
+                                },
+                              }}
+                            />
+                            <span className="volume-value">{stemVolumes[index] !== undefined ? stemVolumes[index] : 0}%</span>
+                          </>
+                        )}
+                      </div>
+                      <div className="track-content">
+                        <div 
+                          ref={(el) => {
+                            waveformContainerRefs.current[index] = el;
+                          }}
+                          className="waveform-container"
+                        />
+                      </div>
+                      <audio
+                        ref={(el) => {
+                          stemAudioRefs.current[index] = el;
+                        }}
+                        src={track.url}
+                        crossOrigin="anonymous"
+                        onEnded={() => handleStemTrackEnded(index)}
+                        onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [index]: true }))}
+                        onPause={() => setStemPlayingStates((prev) => ({ ...prev, [index]: false }))}
+                      />
+                    </div>
                   ))}
                 </div>
-              </div>
-              {singleStemEntries.length === 0 && (
-                <p className="stems-empty">No stem URLs for this song.</p>
               )}
             </div>
-          )}
-          <audio
-            ref={stemAudioRef}
-            crossOrigin="anonymous"
-            onEnded={() => setPlayingStem(null)}
-            onPause={() => setPlayingStem(null)}
-          />
-        </div>
 
-        <div className="guess-section">
-          <h2>Make Your Guess</h2>
-          <p className="guess-instructions">
-            Listen to the stems above and guess which song it is!
-          </p>
-          <div className="guess-controls">
-            <select 
-              className="song-dropdown"
-              value={guessedSongId}
-              onChange={(e) => setGuessedSongId(e.target.value)}
-              disabled={!randomSong}
-            >
-              <option value="">Select a song...</option>
-              {songs.map((song) => (
-                <option key={song.id} value={song.id}>
-                  {song.name}
-                </option>
-              ))}
-            </select>
-            <button 
-              className="submit-guess-btn"
-              onClick={handleSubmitGuess}
-              disabled={!guessedSongId || !randomSong}
-            >
-              Submit Guess
-            </button>
+            <div className="master-controls">
+              <div className="playback-slider-container">
+                <span className="time-label">{formatTime(currentPosition)}</span>
+                <Slider
+                  value={currentPosition}
+                  onChange={handleSliderChange}
+                  min={0}
+                  max={SNIPPET_LENGTH}
+                  step={0.1}
+                  aria-label="Playback position"
+                  sx={{
+                    flex: 1,
+                    mx: 2,
+                    color: 'primary.main',
+                    '& .MuiSlider-thumb': {
+                      width: 16,
+                      height: 16,
+                    },
+                    '& .MuiSlider-track': {
+                      height: 4,
+                    },
+                    '& .MuiSlider-rail': {
+                      height: 4,
+                      opacity: 0.3,
+                    },
+                  }}
+                />
+                <span className="time-label">{formatTime(SNIPPET_LENGTH)}</span>
+              </div>
+              
+              <div className="master-buttons">
+                <button className="master-btn play-all" onClick={playAllStems}>
+                  <PlayArrowIcon />
+                </button>
+                <button className="master-btn pause-all" onClick={pauseAllStems}>
+                  <PauseIcon />
+                </button>
+                <button className="master-btn stop-all" onClick={stopAllStems}>
+                  <ReplayIcon />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="right-pane">
+            <div className="tracks-section">
+              {stemTracks.length === 0 ? (
+                <p className="empty">Loading instrumental stems...</p>
+              ) : (
+                <div className="tracks-list">
+                  {stemTracks.slice(3, 6).map((track, index) => {
+                    const actualIndex = index + 3;
+                    return (
+                      <div key={track.key} className="track-item">
+                        <div className="track-name-header">
+                          <span className="track-name">{track.label}</span>
+                          <IconButton
+                            onClick={() => toggleVolumeControl(actualIndex)}
+                            size="small"
+                            sx={{
+                              color: 'primary.main',
+                              marginLeft: '8px',
+                              '&:hover': {
+                                backgroundColor: 'rgba(103, 80, 164, 0.1)',
+                              },
+                            }}
+                            aria-label={`Toggle ${track.label} volume control`}
+                          >
+                            {stemVolumes[actualIndex] === 0 ? <VolumeOffIcon /> : <VolumeUpIcon />}
+                          </IconButton>
+                          {volumeControlsVisible[actualIndex] && (
+                            <>
+                              <Slider
+                                orientation="horizontal"
+                                value={stemVolumes[actualIndex] !== undefined ? stemVolumes[actualIndex] : 0}
+                                onChange={handleVolumeChange(actualIndex)}
+                                min={0}
+                                max={200}
+                                step={1}
+                                aria-label={`${track.label} volume`}
+                                sx={{
+                                  flex: 1,
+                                  marginLeft: '15px',
+                                  marginRight: '10px',
+                                  color: 'primary.main',
+                                  '& .MuiSlider-thumb': {
+                                    width: 14,
+                                    height: 14,
+                                  },
+                                  '& .MuiSlider-track': {
+                                    height: 3,
+                                  },
+                                  '& .MuiSlider-rail': {
+                                    height: 3,
+                                    opacity: 0.3,
+                                  },
+                                }}
+                              />
+                              <span className="volume-value">{stemVolumes[actualIndex] !== undefined ? stemVolumes[actualIndex] : 0}%</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="track-content">
+                          <div 
+                            ref={(el) => {
+                              waveformContainerRefs.current[actualIndex] = el;
+                            }}
+                            className="waveform-container"
+                          />
+                        </div>
+                        <audio
+                          ref={(el) => {
+                            stemAudioRefs.current[actualIndex] = el;
+                          }}
+                          src={track.url}
+                          crossOrigin="anonymous"
+                          onEnded={() => handleStemTrackEnded(actualIndex)}
+                          onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [actualIndex]: true }))}
+                          onPause={() => setStemPlayingStates((prev) => ({ ...prev, [actualIndex]: false }))}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="guess-section">
+              <div className="guess-controls">
+                <FormControl fullWidth variant="outlined" disabled={!randomSong}>
+                  <InputLabel id="song-select-label" sx={{ color: '#6750A4' }}>Select a song</InputLabel>
+                  <Select
+                    labelId="song-select-label"
+                    value={guessedSongId}
+                    onChange={(e) => setGuessedSongId(e.target.value)}
+                    label="Select a song"
+                    sx={{
+                      backgroundColor: 'white',
+                      borderRadius: 2,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#6750A4',
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#6750A4',
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: '#6750A4',
+                      },
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>Select a song...</em>
+                    </MenuItem>
+                    {songs.map((song) => (
+                      <MenuItem key={song.id} value={song.id}>
+                        {song.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <button 
+                  className="submit-guess-btn"
+                  onClick={handleSubmitGuess}
+                  disabled={!guessedSongId || !randomSong}
+                >
+                  Submit Guess
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
-        {currentSong && (
-          <div className="player">
-            <div className="player-info">
-              <div className="now-playing">Now Playing:</div>
-              <div className="song-title">{currentSong.name}</div>
-            </div>
-            <div className="player-controls">
-              <button onClick={togglePlayPause} className="play-button">
-                {isPlaying ? '⏸ Pause' : '▶ Play'}
+        <Dialog
+          open={resultsModalOpen}
+          onClose={handleCloseModal}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 3,
+              padding: 2,
+            },
+          }}
+        >
+          {loadingResults ? (
+            <DialogContent sx={{ textAlign: 'center', py: 6 }}>
+              <CircularProgress size={60} sx={{ mb: 3 }} />
+              <DialogTitle sx={{ p: 0 }}>Calculating Similarity...</DialogTitle>
+              <p style={{ color: '#666', marginTop: '10px' }}>Please wait while we compare the songs...</p>
+            </DialogContent>
+          ) : resultsError ? (
+            <DialogContent sx={{ textAlign: 'center', py: 4 }}>
+              <DialogTitle sx={{ p: 0, color: '#dc3545' }}>Error</DialogTitle>
+              <p style={{ color: '#666', marginTop: '10px' }}>{resultsError}</p>
+              <button onClick={handleCloseModal} className="submit-guess-btn" style={{ marginTop: '20px' }}>
+                Close
               </button>
-            </div>
-            <audio
-              ref={musicAudioRef}
-              crossOrigin="anonymous"
-              onEnded={() => setIsPlaying(false)}
-              onPlay={() => setIsPlaying(true)}
-              onPause={() => setIsPlaying(false)}
-            />
-          </div>
-        )}
-
-        <div className="master-controls">
-          <h2>Master Controls</h2>
-          <div className="master-buttons">
-            <button className="master-btn play-all" onClick={playAllStems}>
-              Play All Stems
-            </button>
-            <button className="master-btn pause-all" onClick={pauseAllStems}>
-              Pause All
-            </button>
-            <button className="master-btn stop-all" onClick={stopAllStems}>
-              Restart All
-            </button>
-          </div>
-          
-          <div className="playback-slider-container">
-            <span className="time-label">{formatTime(currentPosition)}</span>
-            <input
-              type="range"
-              min="0"
-              max={SNIPPET_LENGTH}
-              step="0.1"
-              value={currentPosition}
-              onChange={handleSliderChange}
-              className="playback-slider"
-            />
-            <span className="time-label">{formatTime(SNIPPET_LENGTH)}</span>
-          </div>
-        </div>
-
-        <div className="tracks-section">
-          <h2>Instrumental Stems ({stemTracks.length})</h2>
-          {stemTracks.length === 0 ? (
-            <p className="empty">Loading instrumental stems...</p>
-          ) : (
-            <div className="tracks-list">
-              {stemTracks.map((track, index) => (
-                <div key={track.key} className="track-item">
-                  <div className="track-header">
-                    <span className="track-name">{track.label}</span>
-                    <div className="volume-control">
-                      <span className="volume-icon">🔊</span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="200"
-                        value={stemVolumes[index] !== undefined ? stemVolumes[index] : 100}
-                        onChange={(e) => handleVolumeChange(index, e.target.value)}
-                        className="volume-slider"
-                      />
-                      <span className="volume-value">{stemVolumes[index] !== undefined ? stemVolumes[index] : 100}%</span>
+            </DialogContent>
+          ) : similarityData ? (
+            <>
+              <DialogTitle sx={{ textAlign: 'center', fontSize: '1.8rem', fontWeight: 600, color: '#6750A4' }}>
+                Song Similarity Results
+              </DialogTitle>
+              <DialogContent>
+                <div className="results-section">
+                  <div className="song-comparison">
+                    <div className="comparison-item">
+                      <h3>Actual Song</h3>
+                      <p className="song-title">{similarityData.actual_song.name}</p>
+                      {similarityData.actual_song.artists && (
+                        <p className="song-artists">{similarityData.actual_song.artists}</p>
+                      )}
+                    </div>
+                    
+                    <div className="comparison-arrow">→</div>
+                    
+                    <div className="comparison-item">
+                      <h3>Your Guess</h3>
+                      <p className="song-title">{similarityData.guessed_song.name}</p>
+                      {similarityData.guessed_song.artists && (
+                        <p className="song-artists">{similarityData.guessed_song.artists}</p>
+                      )}
                     </div>
                   </div>
-                  <div 
-                    ref={(el) => {
-                      waveformContainerRefs.current[index] = el;
-                    }}
-                    className="waveform-container"
-                  />
-                  <div className="track-buttons">
-                    <button
-                      className={`track-btn ${stemPlayingStates[index] ? 'playing' : ''}`}
-                      onClick={() => playStemClip(index)}
-                      disabled={stemPlayingStates[index]}
-                    >
-                      Play
-                    </button>
-                    <button
-                      className="track-btn pause-btn"
-                      onClick={() => pauseStemClip(index)}
-                      disabled={!stemPlayingStates[index]}
-                    >
-                      Pause
-                    </button>
-                    <button
-                      className="track-btn restart-btn"
-                      onClick={() => restartStemClip(index)}
-                    >
-                      Restart
+
+                  <div className="similarity-score">
+                    <h2>Similarity Score</h2>
+                    <div className="score-value">{similarityData.similarity_score}%</div>
+                    <p className="score-description">{similarityData.message}</p>
+                  </div>
+
+                  <div className="stems-used-info" style={{ 
+                    textAlign: 'center', 
+                    padding: '15px', 
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                    borderRadius: '10px',
+                    color: 'white',
+                    marginBottom: '20px',
+                    fontWeight: 600
+                  }}>
+                    <div>Stems Listened To: {Object.keys(stemsUnmuted).length} / {stemTracks.length}</div>
+                    {Object.keys(stemsUnmuted).length > 0 && (
+                      <div style={{ marginTop: '8px', fontSize: '0.9em', opacity: 0.95 }}>
+                        ({Object.keys(stemsUnmuted).join(', ')})
+                      </div>
+                    )}
+                  </div>
+
+                  {(() => {
+                    const baseScore = similarityData.similarity_score;
+                    const nonVocalStems = Object.keys(stemsUnmuted).filter(stem => stem !== 'Vocals').length;
+                    const vocalsUnmuted = stemsUnmuted['Vocals'] ? 1 : 0;
+                    const finalPoints = baseScore - (nonVocalStems * POINTS_PER_NON_VOCAL_STEM) - (vocalsUnmuted * POINTS_FOR_VOCALS);
+                    
+                    let pointsColor;
+                    let pointsDisplay;
+                    
+                    if (finalPoints > 0) {
+                      pointsColor = '#22c55e';
+                      pointsDisplay = `+${finalPoints}`;
+                    } else if (finalPoints < 0) {
+                      pointsColor = '#ef4444';
+                      pointsDisplay = finalPoints;
+                    } else {
+                      pointsColor = '#9ca3af';
+                      pointsDisplay = '0';
+                    }
+                    
+                    return (
+                      <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '2rem', fontWeight: 'bold', color: pointsColor }}>
+                        {pointsDisplay}
+                      </div>
+                    );
+                  })()}
+
+                  {similarityData.actual_song_metadata && similarityData.guessed_song_metadata && (
+                    <div className="metadata-comparison">
+                      <h3>Audio Characteristics Comparison</h3>
+                      
+                      <div className="metadata-grid metadata-grid-4col">
+                        <div className="metadata-header"></div>
+                        <div className="metadata-header actual-header">Actual Song</div>
+                        <div className="metadata-header guessed-header">Your Guess</div>
+                        <div className="metadata-header match-header">Match %</div>
+                        
+                        <div className="metadata-row-label">Key</div>
+                        <div className="metadata-value metadata-actual">
+                          {getKeyName(similarityData.actual_song_metadata.key)} {similarityData.actual_song_metadata.mode === 1 ? 'Major' : 'Minor'}
+                        </div>
+                        <div className="metadata-value metadata-guessed">
+                          {getKeyName(similarityData.guessed_song_metadata.key)} {similarityData.guessed_song_metadata.mode === 1 ? 'Major' : 'Minor'}
+                        </div>
+                        <div className="metadata-value metadata-match">{similarityData.breakdown?.['Key Match'] || 0}%</div>
+                        
+                        <div className="metadata-row-label">Tempo (BPM)</div>
+                        <div className="metadata-value metadata-actual">{similarityData.actual_song_metadata.tempo}</div>
+                        <div className="metadata-value metadata-guessed">{similarityData.guessed_song_metadata.tempo}</div>
+                        <div className="metadata-value metadata-match">{similarityData.breakdown?.['Tempo Match'] || 0}%</div>
+                        
+                        <div className="metadata-row-label">Energy</div>
+                        <div className="metadata-value metadata-actual">{(similarityData.actual_song_metadata.energy * 100).toFixed(0)}%</div>
+                        <div className="metadata-value metadata-guessed">{(similarityData.guessed_song_metadata.energy * 100).toFixed(0)}%</div>
+                        <div className="metadata-value metadata-match">{similarityData.breakdown?.['Energy Match'] || 0}%</div>
+                        
+                        <div className="metadata-row-label">Valence (Mood)</div>
+                        <div className="metadata-value metadata-actual">{(similarityData.actual_song_metadata.valence * 100).toFixed(0)}%</div>
+                        <div className="metadata-value metadata-guessed">{(similarityData.guessed_song_metadata.valence * 100).toFixed(0)}%</div>
+                        <div className="metadata-value metadata-match">{similarityData.breakdown?.['Mood Match'] || 0}%</div>
+                        
+                        <div className="metadata-row-label">Loudness (dB)</div>
+                        <div className="metadata-value metadata-actual">{similarityData.actual_song_metadata.loudness}</div>
+                        <div className="metadata-value metadata-guessed">{similarityData.guessed_song_metadata.loudness}</div>
+                        <div className="metadata-value metadata-match">{similarityData.breakdown?.['Loudness Match'] || 0}%</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                    <button onClick={handleCloseModal} className="submit-guess-btn">
+                      Close
                     </button>
                   </div>
-                  <audio
-                    ref={(el) => {
-                      stemAudioRefs.current[index] = el;
-                    }}
-                    src={track.url}
-                    crossOrigin="anonymous"
-                    onEnded={() => handleStemTrackEnded(index)}
-                    onPlay={() => setStemPlayingStates((prev) => ({ ...prev, [index]: true }))}
-                    onPause={() => setStemPlayingStates((prev) => ({ ...prev, [index]: false }))}
-                  />
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {playingAllStems && (
-          <div className="status-banner">
-            🎵 All stems playing simultaneously ({SNIPPET_LENGTH}s snippets)
-          </div>
-        )}
+              </DialogContent>
+            </>
+          ) : null}
+        </Dialog>
       </div>
     </div>
+    </ThemeProvider>
   );
 }
 
