@@ -52,10 +52,8 @@ function Layout({ children }) {
               display: 'flex',
               alignItems: 'center',
               gap: 2,
-              backgroundColor: 'white',
               padding: '8px 16px',
               borderRadius: '24px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             }}
           >
             <Typography
@@ -63,7 +61,7 @@ function Layout({ children }) {
               to="/login"
               variant="body2"
               sx={{
-                color: '#6750A4',
+                color: 'white',
                 fontWeight: 600,
                 textDecoration: 'none',
                 '&:hover': { textDecoration: 'underline' },
@@ -76,7 +74,7 @@ function Layout({ children }) {
               to="/signup"
               variant="body2"
               sx={{
-                color: '#6750A4',
+                color: 'white',
                 fontWeight: 600,
                 textDecoration: 'none',
                 '&:hover': { textDecoration: 'underline' },
@@ -97,25 +95,22 @@ function Layout({ children }) {
               display: 'flex',
               alignItems: 'center',
               gap: 1,
-              backgroundColor: 'white',
               padding: '8px 16px',
               borderRadius: '24px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               cursor: 'pointer',
-              transition: 'box-shadow 0.2s, transform 0.2s',
+              transition: 'transform 0.2s',
               '&:hover': {
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 transform: 'translateY(-1px)',
               },
             }}
           >
-            <Typography variant="body2" sx={{ color: '#666' }}>
-              Welcome, <strong style={{ color: '#6750A4' }}>{user.username}</strong>
+            <Typography variant="body2" sx={{ color: 'white' }}>
+              Welcome, <strong style={{ color: 'white' }}>{user.username}</strong>
             </Typography>
             <IconButton
               size="small"
               sx={{
-                color: 'primary.main',
+                color: 'white',
                 pointerEvents: 'none',
               }}
               aria-label="User menu"

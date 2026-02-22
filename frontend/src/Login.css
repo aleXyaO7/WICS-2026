@@ -3,29 +3,28 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: black;
   padding: 20px;
 }
 
 .login-box {
-  background: white;
+  background: transparent;
   padding: 40px;
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
   width: 100%;
   max-width: 400px;
 }
 
 .login-box h1 {
   text-align: center;
-  color: #333;
+  color: white;
   margin-bottom: 10px;
   font-size: 2rem;
 }
 
 .login-subtitle {
   text-align: center;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   margin-bottom: 30px;
   font-size: 0.95rem;
 }
@@ -37,12 +36,12 @@
 }
 
 .error-message {
-  background: #fee;
-  color: #c33;
+  background: rgba(200, 80, 80, 0.25);
+  color: #ff9999;
   padding: 12px;
   border-radius: 8px;
   font-size: 0.9rem;
-  border-left: 4px solid #c33;
+  border-left: 4px solid rgba(255, 120, 120, 0.8);
 }
 
 .form-group {
@@ -52,43 +51,50 @@
 }
 
 .form-group label {
-  color: #333;
+  color: white;
   font-weight: 600;
   font-size: 0.9rem;
 }
 
 .form-group input {
   padding: 12px;
-  border: 2px solid #e0e0e0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.3s;
+  color: white;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .login-button {
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: transparent;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, background 0.2s;
   margin-top: 10px;
 }
 
-.login-button:hover {
+.login-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  background: rgba(255, 255, 255, 0.1);
 }
 
-.login-button:active {
+.login-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
@@ -101,12 +107,12 @@
 .login-footer {
   margin-top: 25px;
   text-align: center;
-  color: #666;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 0.9rem;
 }
 
 .login-footer a {
-  color: #667eea;
+  color: white;
   text-decoration: none;
   font-weight: 600;
 }

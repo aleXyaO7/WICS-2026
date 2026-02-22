@@ -7,7 +7,7 @@
   margin: 0;
   position: relative;
   overflow: hidden;
-  background: white;
+  background: black;
 }
 
 /* Smaller background GIF */
@@ -23,7 +23,7 @@
   z-index: 0;
 }
 
-/* Overlay - transparent on white background */
+/* Overlay - transparent on black background */
 .overlay {
   position: absolute;
   top: 0;
@@ -45,7 +45,7 @@
   max-height: 50vh;
   object-fit: contain;
   z-index: 1;
-  mix-blend-mode: multiply;
+  mix-blend-mode: screen;
   opacity: 0.8;
 }
 
@@ -64,7 +64,7 @@
 
 .home-title {
   font-family: "IM Fell French Canon", serif;
-  color: black;
+  color: white;
   font-size: 4rem;
   font-weight: 700;
   margin-bottom: 15px;
@@ -72,7 +72,7 @@
 }
 
 .home-subtitle {
-  color: black;
+  color: white;
   font-size: 1.1rem;
   margin-bottom: 30px;
   animation: fadeIn 1s ease-out;
@@ -94,10 +94,10 @@
   align-items: center;
   justify-content: center;
   padding: 15px 10px;
-  background: white;
+  background: transparent;
   border-radius: 12px;
   text-decoration: none;
-  color: black;
+  color: white;
   transition: transform 0.3s;
   flex: 1;
   min-width: 80px;
@@ -130,19 +130,19 @@
 
 .button-desc {
   font-size: 0.7rem;
-  color: #333;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .player-button:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .login-button:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .signup-button:hover {
-  background: linear-gradient(135deg, rgba(240, 147, 251, 0.1) 0%, rgba(245, 87, 108, 0.1) 100%);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @keyframes fadeInDown {

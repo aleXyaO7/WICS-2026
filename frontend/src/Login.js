@@ -29,7 +29,7 @@ function Login() {
       
       login(response.data.user);
       
-      navigate('/player');
+      navigate('/');
     } catch (err) {
       if (err.response?.data?.error) {
         setError(err.response.data.error);
@@ -45,7 +45,7 @@ function Login() {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h1>🎵 Welcome Back</h1>
+        <h1>Welcome Back</h1>
         <p className="login-subtitle">Log in to your music account</p>
         
         <form onSubmit={handleSubmit} className="login-form">

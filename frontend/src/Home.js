@@ -13,12 +13,6 @@ function Home() {
       
       <div className="overlay"></div>
       
-      <img 
-        src="/sheet-music.gif" 
-        alt="Sheet Music" 
-        className="sheet-music-gif"
-      />
-      
       <div className="home-content">
         <h1 className="home-title">wavelength.</h1>
         <p className="home-subtitle">train your brain to hear musical composition</p>
