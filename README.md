@@ -15,10 +15,29 @@ We built the frontend using React because it enabled us to dynamically represent
 We ran into a lot of challenges early on navigating around api limits and being able to wrangle data into formats we could work with. Then, we had to overcome issues with communicating key information between users and the program. Finally, we had lots of issues integrating all of our services together.
 
 ## Accomplishments that we're proud of
-We are proud of how nuanced our project is. We set a lot of ambitious goals and had to tie together lots of  different services in a short amount of time, most of which we have very limited experience with. Specifically, our group is proud of how we integrated a dynamic React frontend with a Flask backend that had to pull in data from Supabase databases and Amazon SW3 Buckets, as well as how we were able to resourcefully extract all the metadata we required from the songs using APIs.
+We are proud of how nuanced our project is. We set a lot of ambitious goals and had to tie together lots of different services in a short amount of time, most of which we have very limited experience with. Specifically, our group is proud of how we integrated a dynamic React frontend with a Flask backend that had to pull in data from Supabase databases and Amazon SW3 Buckets, as well as how we were able to resourcefully extract all the metadata we required from the songs using APIs.
 
 ## What we learned
 We learned a lot about processing audio files and using them as inputs for machine learning models. As mentioned above, we had to learn how to use multiple APIs to grab the necessary metadata, using models to embed the audio files of songs, and finally deriving a weighted formula to determine similarity between two songs. Besides the technological expertise we gained, it was cool to learn which factors were the most important for determining similarity between songs, but also how the various instruments used in a song all harmonize together.
 
 ## What's next for Wavelength
 Given more time, we would like to explore turning this game into a live, competitive match between users.   We believe it would a new and challenging way for users to learn more about the world of composition and music while having lots of fun.
+
+## To run
+
+```git clone https://github.com/aleXyaO7/wavelength.git
+cd wavelength
+python -m venv venv
+venv/scripts/activate
+pip install -r requirements.txt
+
+cd frontend
+npm i
+
+cd ../backend
+python app.py
+
+# In seperate terminal
+cd ../frontend
+npm start
+```
